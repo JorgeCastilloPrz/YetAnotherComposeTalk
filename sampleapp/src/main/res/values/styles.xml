@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/arrow_dark</item>
+        <item name="colorPrimaryDark">@color/arrow_dark</item>
+        <item name="colorSecondary">@color/arrow</item>
+    </style>
+
+    <style name="IconButton" parent="Widget.MaterialComponents.Button.UnelevatedButton">
+        <item name="backgroundTint">@null</item>
+        <item name="android:background">@drawable/icon_button_selector</item>
+    </style>
+</resources>

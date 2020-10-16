@@ -1,0 +1,75 @@
+// 47 Degrees Reveal Academy theme
+// ---------------------------------------------
+// ---------------------------------------------
+
+
+// Default mixins and settings -----------------
+@import "../template/mixins";
+@import "../template/settings";
+// ---------------------------------------------
+
+
+// Include theme-specific fonts
+@import url('https://fonts.googleapis.com/css2?family=Changa:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Overpass+Mono:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Overpass+Mono:wght@300;400;600;700&display=swap');
+
+
+// Override theme settings (see ../template/settings.scss)
+$backgroundColor: #000;
+
+$mainColor: #fff;
+$headingColor: #fff;
+
+$mainFontSize: 42px;
+$mainFont: 'Open Sans', sans-serif;
+$headingFont: 'Changa', sans-serif;
+$codeFont: 'Overpass Mono', monospace;;
+$headingTextShadow: none;
+$headingLetterSpacing: normal;
+$headingTextTransform: normal;
+$headingFontWeight: 600;
+$linkColor: #42affa;
+$linkColorHover: lighten( $linkColor, 15% );
+$selectionBackgroundColor: lighten( $linkColor, 25% );
+$backgroundCode: rgba(#000, 0.5);
+
+$heading1Size: 2.5em;
+$heading2Size: 1.6em;
+$heading3Size: 1.3em;
+$heading4Size: 1.0em;
+
+section.has-light-background {
+	&, h1, h2, h3, h4, h5, h6 {
+		color: #222;
+	}
+}
+
+
+// Theme template ------------------------------
+@import "../template/theme";
+// ---------------------------------------------
+
+
+
+// Body
+.reveal-viewport {
+	background: url("https://d1bv04v5uizu9x.cloudfront.net/assets/img/background-blackboard.jpg");
+	background-size: cover;
+	padding-right: 500px;
+}
+  
+// Reveal content
+
+.reveal {
+    padding-top: 100px;
+}
+
+// Highlight
+
+.hljs {
+    background: $backgroundCode;
+    font-family: $headingFont;
+}
+    
+    

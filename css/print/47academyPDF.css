@@ -1,0 +1,9 @@
+.reveal-viewport {
+    background: url("https://d1bv04v5uizu9x.cloudfront.net/assets/img/background-blackboard.jpg");
+    background-size: cover;
+    padding-right: 0px;
+}
+
+.reveal {
+    padding-top: 10px;
+}

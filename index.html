@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>47 Academy Reveal</title>
+
+    <link rel="stylesheet" href="dist/reset.css">
+    <link rel="stylesheet" href="dist/reveal.css">
+    <!-- Theme used for syntax highlighted code -->
+    <link rel="stylesheet" href="plugin/highlight/dracula.css" id="highlight-theme">
+    <!-- Local Style -->
+    <!--     <link rel="stylesheet" href="dist/theme/47academy.css" id="theme">-->
+    <!-- CDN Style -->
+    <link rel="stylesheet" href="https://d1bv04v5uizu9x.cloudfront.net/css/reveal/47academy.css" id="theme">
+    <link rel="stylesheet" href="https://d1bv04v5uizu9x.cloudfront.net/css/reveal/47academy-playground.css">
+    <link rel="stylesheet" href="css/component.css">
+
+    <!-- <script>
+        window.onload = function() {
+            setTimeout(function(){
+                document.getElementsByTagName("video").forEach(item => { item.currentTime = item.duration; });
+            }, 1000);
+        };
+    </script> -->
+
+    <!--    <script>-->
+    <!--      var link = document.createElement("link");-->
+    <!--      link.rel = "stylesheet";-->
+    <!--      link.type = "text/css";-->
+    <!--      link.href = "css/print/47academyPDF.css";-->
+    <!--      document.getElementsByTagName("head")[0].appendChild(link);-->
+    <!--    </script>-->
+</head>
+
+<body>
+<div class="reveal">
+    <div class="slides">
+        <section data-scene="04 Reveal slides" data-transition="slide" data-markdown="slides/src/main/slides.md"></section>
+    </div>
+</div>
+
+<script src="dist/reveal.js"></script>
+<script type="text/javascript" src="node_modules/obs-websocket-js/dist/obs-websocket.js"></script>
+<script type="text/javascript" src="node_modules/fuzzyset/lib/fuzzyset.js"></script>
+
+<script type="module">
+    Reveal.initialize({
+        width: "100%",
+        height: "100%",
+        transition: "true",
+        touch: true,
+        controls: false,
+        center: false,
+        progress: true,
+        history: true,
+        // autoPlayMedia: false,
+        viewDistance: 3,
+        margin: 0.1,
+        dependencies: [
+            {src: 'plugin/obs/obs.js'},
+            {src: "plugin/markdown/marked.js"},
+            {src: "plugin/markdown/markdown.js"},
+            {
+                src: "plugin/notes/notes.js",
+                async: true
+            },
+            {
+                src: "plugin/highlight/highlight.js",
+                async: true,
+                callback: function () {
+                    hljs.initHighlightingOnLoad();
+                }
+            },
+            {
+                src: "https://unpkg.com/arrow-playground@1",
+                async: true,
+                callback: async function () {
+                    function updateCurrentSnippets() {
+                        const currentSlide = document.querySelector(".present");
+                        window.CurrentSnippets = [];
+                        PlaygroundSnippets.map(arrowSnippet => {
+                            if (currentSlide.contains(arrowSnippet.targetNode)) {
+                                arrowSnippet.view.codemirror.refresh();
+                                window.CurrentSnippets.push(arrowSnippet);
+                            }
+                        });
+                        window.dispatchEvent(new Event("resize"));
+                    }
+
+                    window.PlaygroundSnippets = await ArrowPlayground(".arrow");
+                    window.CurrentSnippets = [];
+                    updateCurrentSnippets();
+                    Reveal.addEventListener("slidechanged", updateCurrentSnippets);
+                }
+            },
+        ]
+    });
+</script>
+</body>
+
+</html>
