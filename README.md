@@ -1,6 +1,8 @@
-# [Talk] Functional Android
+# [Talk] Yet another Jetpack Compose talk... or maybe not?
 
-Talk on how to write pure functional Android apps using the brand new Arrow Fx Coroutines library.
+There are some topics there is not much if any literature about yet, but topics I consider key. On this talk, we'll cover the compiler and runtime sides of Compose, the nature of Composable functions, effect handlers, composable lifecycles, scoping tasks to those, surviving config changes, navigation with backstack support, integration with already exiting observable state data types, how Compose will influence architecture, and much more.
+
+## Setup
 
 It uses the base template for [reveal.js](https://revealjs.com/) that we use at 47academy with OBS.
 
