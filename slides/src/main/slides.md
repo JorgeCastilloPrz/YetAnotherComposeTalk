@@ -1,22 +1,7 @@
-<img src="https://d1bv04v5uizu9x.cloudfront.net/assets/event_images/2020-10-07-kotlin-functional-android-development.png"/>
-
----
-
-## Why FP? 🤔
-
-<div class="card">
-    Achieve <b>determinism</b> to fight race conditions.
-</div>
-
-* Pure functions 👉 improve code reasoning.
-* Keep side effects under control.
-
----
-
 ## Concern separation
 
 <div class="card">
-    Staying <b>declarative and deferred</b>.
+    Stay <b>declarative</b>.
 </div>
 
 * Memory representation of the program (algebras).
