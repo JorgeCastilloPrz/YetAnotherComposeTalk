@@ -4,9 +4,11 @@
     Stay <b>declarative</b>.
 </div>
 
+<img src="assets/algebrasvsruntime.png"/>
+
 * Memory representation of the program (algebras).
 * Decoupled runtime - optimizations.
-* Simple example: Kotlin `Sequences` 👉 terminal ops to consume - `toList()`
+* <span style="color:#64b5f6;">Simple example: Kotlin `Sequences` 👉 terminal ops to consume - `toList()`</span>
 
 ---
 
@@ -22,38 +24,92 @@
 
 <div>
   <img style="vertical-align:middle;width:120px;" src="/assets/jetpack-compose.svg"/>
-  <h2 style="display:inline;"><span style="">Compose</span></h2>
+  <h2 style="display:inline;"><span style="">Algebras</span></h2>
 </div>
 
 <div class="card">
-    Also applies <b>concern separation</b>
+    The composition tree 🌲
 </div>
 
-* Creates an in-memory representation of the UI tree 🌲
-* The runtime interprets it by applying desired optimizations.
+* In-memory description of the composition.
+* Built by composable functions.
 
-*(Run composable functions in parallel, in different order, smart recomposition...).*
+---
+
+<div>
+  <img style="vertical-align:middle;width:120px;" src="/assets/jetpack-compose.svg"/>
+  <h2 style="display:inline;"><span style="">Runtime</span></h2>
+</div>
+
+<div class="card">
+  All driven by the <b>Slot Table</b>.
+</div>
+
+* Slot table is created during execution.
+* The **Applier** constructs and maintains the output composable tree.
+* The runtime **heavily depends on kotlinx.coroutines**.
+* 🎬 The Compose Runtime, Demystified - by @intellijibabble
+
+---
+
+<div>
+  <img style="vertical-align:middle;width:120px;" src="/assets/jetpack-compose.svg"/>
+  <h2 style="display:inline;"><span style="">Runtime</span></h2>
+</div>
+
+<span style="color:#64b5f6;">*(Offload compositions to arbitrary threads, run those in parallel, different order, smart recomposition...).*</span>
 
 ---
 
 ## Composable functions
 
 <div class="card">
-    Similar to suspend functions 🤔
+    Similar to <b>suspend</b> functions 🍃
 </div>
 
-* <u>Description</u> of an effect to render UI.
-* Only callable from within other composable functions or a prepared **environment** 👉 integration point 👉 `setContent {}`
-* Enforces a usage scope to keep control over it.
+* <span style="color:#64b5f6;">Description of a UI effect</span>.
+* Callable from within other composable functions or a prepared **environment** 👉 integration point 👉 `setContent {}`
+* Ensures a `Composer` object can be implicitly passed (contains the Slot table).
+* <span style="color:#64b5f6;">Enforces a usage scope</span> to keep control over it.
+* Makes the effect <span style="color:#64b5f6;">compile time tracked</span>.
+
+---
+
+## Suspend functions
+
+<div class="card">
+    This is how <b>suspend</b> works 🍃.
+</div>
+
+* <span style="color:#64b5f6;">Description of an effect</span> 🌀 (Not only UI).
+* Callable from within other suspend functions or a prepared **environment** 👉 integration point 👉 coroutine.
+* Ensures a `Continuation` can be implicitly passed.
+* <span style="color:#64b5f6;">Enforces a usage scope</span> to keep control over it.
+* Makes the effect <span style="color:#64b5f6;">compile time tracked</span>.
 
 ---
 
 ## Composable functions
+
+<div class="card">
+    Some extra capabilities.
+</div>
+
+* Allows memoization based on what's stored in the slot table 👉 `remember {}`
+* `state {}` 👉 `remember { State(initial() }`
+* Recomposition 👉 re-invoked multiple times 👉 idempotent.
+
+---
+
+## Platform integration
+
+<div class="card">
+  Provided for Android by <b>compose-ui</b>.
+</div>
 
 ```kotlin
 class MainActivity : AppCompatActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
-    /* ... */
     setContent { // integration point for Android
       AppTheme {
         MainContent() // composable tree
@@ -64,49 +120,54 @@ class MainActivity : AppCompatActivity() {
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
-* The integration point interprets the in-memory UI tree 👉 skia in Android
-* Allow using different runtimes.
+* The integration point interprets the in-memory UI tree 👉 skia in Android.
+* Totally decoupled from the runtime.
 
 ---
 
-## Android architecture?
+## Decoupled runtime
 
 <div class="card">
-    We can leverage the same idea using <b>suspend</b> 🍃.
+  Decoupled from the node types used.
 </div>
 
-* Flags a potentially blocking long running computation 👉 effect 🌀
-* Enforces it to run under a prepared environment (Coroutine).
-* Makes the effect compile **time tracked**.
+* Supports multiple tree and node types.
+* Could analyze / compare in memory trees with nodes of any types, not only composable nodes.
 
 ---
 
-## Flag effects as suspend
+## Effect handlers
 
 <div class="card">
- Make 'em <b>pure</b>!
+  Running effects <b>from composable functions</b>.
 </div>
 
-```diff
-interface UserService {
--  fun loadUser(): User
-+  suspend fun loadUser(): User
-}
-```
+* Not recommended to run effects from composables 🤔
+* They would run on every recomposition.
+* <span style="color:#64b5f6;">Composable functions need to be pure (idempotent).</span>
 
-```diff
-class UserPersistence {
--  fun loadUser(): User = TODO()
-+  suspend fun loadUser(): User = TODO()
-}
-```
+---
 
-```diff
-class AnalyticsTracker {
--  fun trackEvent(event: Event): Unit = TODO()
-+  suspend fun trackEvent(event: Event): Unit = TODO()
-}
-```
+## Effect handlers
+
+<div class="card">
+  Part of <b>compose-runtime</b>.
+</div>
+
+* Effect handlers to keep effects under control 👉 `suspend`.
+* <span style="color:#64b5f6;">Tied to KotlinX Coroutines.</span>
+
+---
+
+## Effect handlers
+
+<div class="card">
+  Stored as description of effects in the Composer.
+</div>
+
+* The `Composer` is read only.
+* Slot table updates are pushed to the `Composer` as deferred ops to be applied later.
+* They're descriptions of effects.
 
 ---
 
