@@ -5,11 +5,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.launchInComposition
+import androidx.compose.ui.Layout
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import arrow.core.Either
 import arrow.fx.coroutines.CancelToken
 import arrow.fx.coroutines.Environment
 import arrow.fx.coroutines.evalOn
@@ -31,6 +30,13 @@ class HomeFragment : Fragment() {
 
   private lateinit var list: RecyclerView
   private lateinit var pullToRefresh: SwipeRefreshLayout
+
+  @Composable
+  fun SomeComposable() {
+    Layout() {
+
+    }
+  }
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
