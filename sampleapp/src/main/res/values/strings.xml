@@ -3,8 +3,8 @@
     <string name="error">Something went wrong: %1$s</string>
     <string name="empty_state">Design a nice empty state 🙏</string>
     <string name="fav_icon_accessibility">Fav icon</string>
-    <string name="characters">Characters</string>
-    <string name="episodes">Episodes</string>
-    <string name="locations">Locations</string>
+    <string name="tab1">Tab 1</string>
+    <string name="tab2">Tab2</string>
+    <string name="tab3">Tab3</string>
     <string name="toolbar_title">Compose sample</string>
 </resources>

@@ -13,14 +13,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toUpperCase
+import androidx.ui.tooling.preview.Preview
+import com.fortyseven.sampleapp.theme.DayNightTheme
 
 enum class CourseTabs(
   @StringRes val title: Int,
   @DrawableRes val icon: Int
 ) {
-  CHARACTERS(R.string.characters, R.drawable.ic_character),
-  EPISODES(R.string.episodes, R.drawable.ic_episode),
-  SEARCH(R.string.locations, R.drawable.ic_location)
+  TAB1(R.string.tab1, R.drawable.ic_account),
+  TAB2(R.string.tab2, R.drawable.ic_list),
+  TAB3(R.string.tab3, R.drawable.ic_location)
 }
 
 @Composable
@@ -38,5 +40,13 @@ fun TabBar(selectedTab: CourseTabs, setSelectedTab: (CourseTabs) -> Unit) {
         unselectedContentColor = contentColor()
       )
     }
+  }
+}
+
+@Preview
+@Composable
+fun TabBarPreview() {
+  DayNightTheme {
+    TabBar(selectedTab = CourseTabs.TAB1, setSelectedTab = {})
   }
 }

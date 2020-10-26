@@ -27,7 +27,7 @@ class MainActivity : AppCompatActivity() {
 
 @Composable
 fun AppContent() {
-  val (selectedTab, setSelectedTab) = remember { mutableStateOf(CourseTabs.CHARACTERS) }
+  val (selectedTab, setSelectedTab) = remember { mutableStateOf(CourseTabs.TAB1) }
   Scaffold(
     backgroundColor = MaterialTheme.colors.primarySurface,
     topBar = { AppBar() },
@@ -35,9 +35,9 @@ fun AppContent() {
   ) { innerPadding ->
     val modifier = Modifier.padding(innerPadding)
     when (selectedTab) {
-      CourseTabs.CHARACTERS -> Screen(modifier)
-      CourseTabs.EPISODES -> Screen(modifier)
-      CourseTabs.SEARCH -> Screen(modifier)
+      CourseTabs.TAB1 -> Screen(modifier)
+      CourseTabs.TAB2 -> Screen(modifier)
+      CourseTabs.TAB3 -> Screen(modifier)
     }
   }
 }

@@ -7,11 +7,9 @@ buildscript {
         gradleVersionsPluginVersion = '0.17.0'
         javaVersion = JavaVersion.VERSION_1_8
         kotlin_version = '1.4.10'
-        compose_version = '1.0.0-alpha05'
-        arrow_version = '0.11.0'
+        compose_version = '1.0.0-SNAPSHOT' // Update to alpha06 when available since we'll get this broken with every new snapshot otherwise.
         coroutines_version = '1.1.0'
         junit_version = '4.12'
-        arrowVersion = '0.11.0'
     }
 
     repositories {
@@ -26,7 +24,6 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:4.2.0-alpha14'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "io.arrow-kt:arrow-ank-gradle:$arrow_version"
     }
 }
 
@@ -36,6 +33,21 @@ subprojects {
         jcenter()
         mavenCentral()
         maven { url "https://dl.bintray.com/arrow-kt/arrow-kt/" }
+        maven {
+            url "https://androidx.dev/snapshots/builds/6922857/artifacts/repository/"
+        }
+        maven { // Accompanist snapshot repo
+            url "https://oss.sonatype.org/content/repositories/snapshots/"
+        }
+    }
+
+    configurations.configureEach {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group.startsWith('androidx.compose')
+                    || details.requested.group.startsWith('androidx.ui')) {
+                details.useVersion "1.0.0-SNAPSHOT"
+            }
+        }
     }
 }
 

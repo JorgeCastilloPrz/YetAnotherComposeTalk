@@ -21,6 +21,6 @@ fun Screen(modifier: Modifier = Modifier) {
 @Composable
 fun ScreenPreview() {
   DayNightTheme {
-    AppContent()
+    Screen()
   }
 }
