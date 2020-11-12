@@ -447,6 +447,43 @@ class UiApplier(private val root: Any) : Applier<Any> {
 
 * It <span class="blueText">keeps a reference to its children</span>.
 * It keeps track of all children <span class="blueText">measuring / placing</span> and measures itself.
+* Requests remeasuring for itself and its parent when attached / removed.
+
+---
+
+## Compose UI 📲
+
+<div class="card">
+  Compose UI gives us the basic piece of UI, the <b>Layout</b>.
+</div>
+
+* Any other existing <span class="blueText">@Composable</span> layouts are built using it.
+* Remember 👉 It emits a `Change<LayoutNode>`.
+
+```kotlin
+@Composable
+fun MyOwnColumn(
+    modifier: Modifier = Modifier,
+    children: @Composable() () -> Unit
+) {
+    Layout(modifier = modifier, children = children) { measurables, constraints ->
+        val placeables = measurables.map { measurable ->
+            // Measure children based on parent constraints
+            measurable.measure(constraints)
+        }
+
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            var yPosition = 0
+
+            placeables.forEach { placeable -> // Place children in parent
+                placeable.placeRelative(x = 0, y = yPosition)
+                yPosition += placeable.height
+            }
+        }
+    }
+}
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
 
 ---
 
