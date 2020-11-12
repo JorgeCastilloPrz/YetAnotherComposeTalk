@@ -29,6 +29,12 @@
 
 ## Compiler plugin
 
+<img src="assets/Compose Compiler.png"/>
+
+---
+
+## Compiler plugin
+
 <div class="card">
     Passes <b>Composer</b> and compiler generated unique keys to all <b>@Composable</b> functions.
 </div>
