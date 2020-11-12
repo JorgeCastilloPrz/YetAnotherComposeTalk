@@ -14,29 +14,34 @@
 
 ---
 
-## Compiler plugin
+## Compiler plugin ⚙
 
 <div class="card">
-  Decorates <b>@Composable</b> functions based on the <b>Runtime</b> needs.
+  Generates metadata to satisfy the <b>Runtime</b> needs.
 </div>
 
+* Kotlin compiler plugin Targeting Kotlin <span class="blueText">1.4 IR</span>.
 * Scans for all <span class="blueText">`@Composable`</span> functions.
 * Rewrites them (generate convenient IR) to include relevant info when called 👉 (<span class="blueText">`Composer`</span> and unique keys).
-* Targets Kotlin 1.4 IR.
-* Enables runtime optimizations.
+* Unlocks runtime optimizations.
+* <span class="blueText">*(Smart recomposition, offloading compositions to different threads, avoiding extra boilerplate for "Stable" apis... etc)*</span>
 
 ---
 
-## Compiler plugin
+## Compiler plugin ⚙
+
+<div class="card">
+  The Composer will drive the composition <b>at runtime</b>.
+</div>
 
 <img src="assets/Compose Compiler.png"/>
 
 ---
 
-## Compiler plugin
+## Compiler plugin ⚙
 
 <div class="card">
-    Passes <b>Composer</b> and compiler generated unique keys to all <b>@Composable</b> functions.
+    <b>Compiler generated unique keys</b> are also passed to all <b>@Composable</b> functions.
 </div>
 
 ```kotlin
@@ -51,54 +56,142 @@ fun MyComposable($composer: Composer, $key: Int) {
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
-* `@Composable` is the **calling context**.
-* Ensures `Composer` will be available.
+* But how do we know <span class="blueText">@Composable</span> functions are <span class="blueText">called from the right context</span>? 🤔
 
 ---
 
-## Composable functions
+## Compiler checks ⚙
 
 <div class="card">
-    Similar to <b>suspend</b> functions.
+    👇 Composable functions are similar to suspend functions 👇<br/><b>impose a calling context</b>.
 </div>
 
-* Can only be called from other <span class="blueText">`@Composable`</span> functions.
-* Require a calling context 👉 Composer.
-* Composer 👉 part of the Runtime, drives composition / recomposition.
+* Requirement imposed by the Compiler <span class="blueText">frontend</span> phase <span class="yellowText">(static checks)</span> 👉 fast feedback loop.
+* Can <span class="blueText">only be called from other `@Composable` functions</span>
+* Never have standard functions calling composable ones.
+* Ensure a pure <span class="blueText">@Composable</span> function call stack.
+* The compiler can make the <span class="blueText">Composer</span> available at all levels.
 
 ---
 
-## Concern separation
-
-<img src="assets/algebrasvsruntime.png"/>
-
-* Memory representation of the program (algebras).
-* Decoupled runtime - optimizations.
-* <span style="color:#64b5f6;">Simple example: Kotlin `Sequences` 👉 terminal ops to consume - `toList()`</span>
-
----
-
-## Another example of this?
+## Compiler ⚙
 
 <div class="card">
-    <b>Jetpack Compose</b> 😲
+    With this, our @Composable codebase would be <b>ready for the runtime</b>.
 </div>
 
-<img src="/assets/jetpack-compose.svg"/>
+* All the required metadata has been added.
+
+<br/>
+<br/>
+<h1>👍</h1>
 
 ---
 
-<div>
-  <img style="vertical-align:middle;width:120px;" src="/assets/jetpack-compose.svg"/>
-  <h2 style="display:inline;"><span style="">Algebras</span></h2>
-</div>
+## Runtime 🏃
 
 <div class="card">
-    The composition tree 🌲
+    The Compose runtime is <b>declarative</b>.
 </div>
 
-* In-memory description of the composition.
-* Built by composable functions.
+<img src="assets/Runtime concern separation.png"/>
+
+* The interpreter has the big picture 👉 Can decide how to execute / optimize it.
+* The interpreter is <span class="blueText">decoupled</span> from the program.
+
+---
+
+## Runtime 🏃
+
+<div class="card">
+    Creating the in-memory representation 👉 The <b>Slot table</b>
+</div>
+
+* Driven by the <span class="blueText">Composer</span> 👉 Built during composition.
+* First composition 👉 Adds all nodes to the tree.
+* Every recomposition 👉 Updates the table.
+* Table interpreted later on 👉 <span class="blueText">materializes UI</span> on screen 📱
+
+<img src="assets/Runtime concern separation 2.png"/>
+
+* But does it need to be UI? 🤔
+
+---
+
+## Runtime 🏃
+
+<div class="card">
+    <b>No!</b> Compose runtime works with <b>generic nodes</b> of type <b>N</b>.
+</div>
+
+* Slot table 👉 generic node structure.
+* While reading our composable function tree 👉 Composer <span class="blueText">adds, removes, replaces, or moves</span> nodes based on our logics <span class="yellowText">(think of conditional logics)</span>.
+* Those operations are represented by <span class="blueText">emitting</span> changes over the table.
+
+```kotlin
+internal typealias Change<N> = (
+    applier: Applier<N>,
+    slots: SlotWriter,
+    lifecycleManager: LifecycleManager
+) -> Unit
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
+
+---
+
+## Runtime 🏃
+
+```kotlin
+internal typealias Change<N> = (
+    applier: Applier<N>, // interpreter interface we can implement 👉 materializes changes
+    slots: SlotWriter, // writes changes to the table when the time comes
+    lifecycleManager: LifecycleManager // side effects and lifecycle events are also recorded!
+) -> Unit
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
+
+* Lifecycle events of a <span class="blueText">@Composable</span> can be entering / leaving the composition, and also `SideEffects` 👇
+
+```kotlin
+internal interface LifecycleManager {
+    fun entering(instance: CompositionLifecycleObserver)
+    fun leaving(instance: CompositionLifecycleObserver)
+    fun sideEffect(effect: () -> Unit)
+}
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
+
+---
+
+## Runtime 🏃
+
+<div class="card">
+  What <b>types of nodes</b> can we have on the table?
+</div>
+
+* Literally anything driven by a <span class="blueText">@Composable function</span>.
+* <span class="blueText">UI nodes</span> (like LayoutNodes).
+* <span class="blueText">State</span> nodes (by composable functions like remember).
+* <span class="blueText">Composable function calls</span> are also recorded as nodes.
+* <span class="blueText">Providers and Ambients</span> (they're also composable functions).
+* <span class="blueText">SideEffects</span>.
+
+<div class="card">
+  Any relevant data required to <b>materialize UI for a snapshot in time</b>.
+</div>
+
+---
+
+## Runtime 🏃
+
+<div class="card">
+  The Composition takes place first.
+</div>
+
+* First, composition takes place 👉 Slot table is filled with relevant data.
+* Once ready, all recorded changes (List<Change<N>) are applied (Applier<N>).
+* Later on, recomposition might be required 👉 (State change) 👉 Update slot table 👉 apply changes again.
+* After applying changes, all lifecycle events (leave / enter) are dispatched in LIFO order, and finally the side effects.
 
 ---
 
@@ -263,3 +356,14 @@ class MyFragment: Fragment() {
 }
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
+
+---
+
+## Thank you! 🙌
+
+<div>
+  <img style="vertical-align:middle;width:140px;margin-right:20px;" src="/assets/twitter_logo.jpg"/>
+  <h2 style="display:inline;"><span style=""><u>@JorgeCastilloPr</u></span></h2>
+</div>
+
+<img src="/assets/jetpack-compose.svg"/>
