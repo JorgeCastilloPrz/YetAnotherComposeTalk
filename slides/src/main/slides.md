@@ -14,7 +14,7 @@
 
 ---
 
-## Compiler plugin ⚙
+## Compose compiler ⚙
 
 <div class="card">
   Generates metadata to satisfy the <b>Runtime</b> needs.
@@ -28,7 +28,7 @@
 
 ---
 
-## Compiler plugin ⚙
+## Compose compiler ⚙
 
 <div class="card">
   The Composer will drive the composition <b>at runtime</b>.
@@ -38,7 +38,7 @@
 
 ---
 
-## Compiler plugin ⚙
+## Compose compiler ⚙
 
 <div class="card">
     <b>Compiler generated unique keys</b> are also passed to all <b>@Composable</b> functions.
@@ -74,7 +74,7 @@ fun MyComposable($composer: Composer, $key: Int) {
 
 ---
 
-## Compiler ⚙
+## Compose compiler ⚙
 
 <div class="card">
     With this, our @Composable codebase would be <b>ready for the runtime</b>.
@@ -88,7 +88,7 @@ fun MyComposable($composer: Composer, $key: Int) {
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 <div class="card">
     The Compose runtime is <b>declarative</b>.
@@ -101,7 +101,7 @@ fun MyComposable($composer: Composer, $key: Int) {
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 <div class="card">
     Creating the in-memory representation 👉 The <b>Slot table</b>
@@ -118,7 +118,7 @@ fun MyComposable($composer: Composer, $key: Int) {
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 <div class="card">
     <b>No!</b> Compose runtime works with <b>generic nodes</b> of type <b>N</b>.
@@ -139,7 +139,7 @@ internal typealias Change<N> = (
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 ```kotlin
 internal typealias Change<N> = (
@@ -163,7 +163,7 @@ internal interface LifecycleManager {
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 <div class="card">
   Example of how <b>Layout</b> ends up emitting a change to the table.
@@ -197,14 +197,14 @@ recordApplierOperation { applier, _, _ ->
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 <div class="card">
   What <b>types of nodes</b> can we have on the table?
 </div>
 
 * Literally anything driven by a <span class="blueText">@Composable function</span>.
-* <span class="blueText">UI nodes</span> (like LayoutNodes).
+* <span class="blueText">UI nodes</span> (like LayoutNodes or DOMElements).
 * <span class="blueText">State</span> nodes (by composable functions like remember).
 * <span class="blueText">Composable function calls</span> are also recorded as nodes.
 * <span class="blueText">Providers and Ambients</span> (they're also composable functions).
@@ -216,7 +216,7 @@ recordApplierOperation { applier, _, _ ->
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 <div class="card">
   Old but remains equally useful to understand the <b>slot table in depth</b>.
@@ -228,7 +228,7 @@ recordApplierOperation { applier, _, _ ->
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 <img src="assets/The order of Runtime.png"/>
 
@@ -241,7 +241,7 @@ recordApplierOperation { applier, _, _ ->
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 <div class="card">
   What about <b>recomposition</b>?
@@ -269,7 +269,7 @@ fun Counter($composer: Composer) {
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 * `updateScope` invoked by the Runtime <span class="blueText">for recomposition</span>.
 * `$composer.end()` returns `null` if no observable model was read during the composition.
@@ -294,7 +294,7 @@ fun HelloWorld($composer: Composer) {
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 <div class="card">
  <b>Positional Memoization</b> when reading from the slot table.
@@ -313,7 +313,7 @@ fun HelloWorld() {
 
 ---
 
-## Runtime 🏃
+## Compose Runtime 🏃
 
 <div class="card">
   Composition & recomposition is intentionally <b>coupled to KotlinX Coroutines</b>.
@@ -322,43 +322,131 @@ fun HelloWorld() {
 * <span class="blueText">Can't replace</span> it unless you write your complete runtime 👉 Including everything we've described so far 😅
 * Uses it for <span class="blueText">structured concurrency</span> 👉 Parallel recomposition, offload recomposition to different threads...
 * Uses it for <span class="blueText">automatic Cancellation</span> in effect handlers ⏩
-* But you can <span class="blueText">provide your own Applier<N> and node types</span> 👉 We'll show that ahead in this talk.
+* But you can <span class="blueText">provide your own Applier<N> and fpes</span> 👉 We'll show that ahead in this talk.
 
 ---
 
-## Composable functions
+## Compose UI 📲
 
 <div class="card">
-    Some extra capabilities.
+  Materialize all our recorded changes <b>into ultimate Android UI</b>.
 </div>
 
-* Allows memoization based on what's stored in the slot table 👉 `remember {}`
-* `state {}` 👉 `remember { State(initial() }`
-* Recomposition 👉 re-invoked multiple times 👉 idempotent.
+* This module <span class="blueText">bridges the gap between the Runtime and the chosen Platform</span>.
+* The chosen <span class="blueText">`Applier<N>`</span> implementation does the job.
+* Provides integration with the device: layout, drawing (skia), user input...
+
+<img src="assets/Runtime concern separation 2.png"/>
 
 ---
 
-## Platform integration
+## Compose UI 📲
 
 <div class="card">
-  Provided for Android by <b>compose-ui</b>.
+ <b>Other use cases?</b> 🤷 We could imagine a few.
 </div>
+
+* <span class="blueText">UI testing libs</span> that interpret changes by creating abstractions of the UI elements to assert over.
+* Support <span class="blueText">other platforms like desktop</span> -> DOMElements for the nodes, DesktopApplier implementation for the bridging.
+* <span class="blueText">Synchronizing an object graph</span> by serializing / sending diffs.
+* <span class="blueText">Control hardware</span> 👉 minimize commands to reflect a change.
+* Etc
+
+---
+
+## Compose UI 📲
+
+<div class="card">
+ Built-in Applier implementation for <b>Android</b>: The <b>UiApplier</b>.
+</div>
+
+* The <span class="blueText">Applier<N></span> is a visitor that <span class="blueText">visits</span> the whole node tree element by element.
+* Supports <span class="blueText">both ViewGroups and Composable LayoutNodes</span>
 
 ```kotlin
-class MainActivity : AppCompatActivity() {
-  override fun onCreate(savedInstanceState: Bundle?) {
-    setContent { // integration point for Android
-      AppTheme {
-        MainContent() // composable tree
-      }
+class UiApplier(private val root: Any) : Applier<Any> {
+    private val stack = Stack<Any>()
+    private val pendingInserts = Stack<PendingInsert>()
+
+    override var current: Any = root
+
+    override fun down(node: Any) { // adds a node
+        stack.push(current)
+        current = node
     }
-  }
+
+    override fun up() { // pops a node to materialize it
+        val instance = current
+        val parent = stack.pop()
+        current = parent
+        // ...
+        if (pendingInserts.isNotEmpty()) {
+            val pendingInsert = pendingInserts.peek()
+            if (pendingInsert.instance == instance) {
+                val index = pendingInsert.index
+                pendingInserts.pop()
+                when (parent) {
+                    is ViewGroup ->
+                        when (instance) {
+                            is View -> {
+                                adapter?.willInsert(instance, parent)
+                                parent.addView(instance, index)
+                                adapter?.didInsert(instance, parent)
+                            }
+                            is LayoutNode -> {
+                                val composeView = AndroidComposeView(parent.context)
+                                parent.addView(composeView, index)
+                                composeView.root.insertAt(0, instance)
+                            }
+                            else -> invalidNode(instance)
+                        }
+                    is LayoutNode ->
+                        when (instance) {
+                            is View -> {
+                                // Wrap the instance in an AndroidViewHolder, unless the instance
+                                // itself is already one.
+                                @OptIn(InternalInteropApi::class)
+                                val androidViewHolder =
+                                    if (instance is AndroidViewHolder) {
+                                        instance
+                                    } else {
+                                        ViewBlockHolder<View>(instance.context).apply {
+                                            view = instance
+                                        }
+                                    }
+
+                                parent.insertAt(index, androidViewHolder.toLayoutNode())
+                            }
+                            is LayoutNode -> parent.insertAt(index, instance)
+                            else -> invalidNode(instance)
+                        }
+                    else -> invalidNode(parent)
+                }
+                return
+            }
+        }
+    }
+    // ...
 }
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
-* The integration point interprets the in-memory UI tree 👉 skia in Android.
-* Totally decoupled from the runtime.
+---
+
+## Compose UI 📲
+
+<div class="card">
+  <b>LayoutNode</b> is an element in the Layout hierarchy <b>yielded by Compose UI</b>.
+</div>
+
+* It is <span class="blueText">attached to an Owner</span> when materialized by the Applier.
+* Underlying <span class="blueText">connection with the View system</span> 👉 layout, input, drawing, accessibility...
+* It <span class="blueText">keeps a reference to its parent LayoutNode</span> or the Owner when it's the root.
+
+<img src="assets/LayoutNode hierarchy.png"/>
+
+* It <span class="blueText">keeps a reference to its children</span>.
+* It keeps track of all children <span class="blueText">measuring / placing</span> and measures itself.
 
 ---
 
