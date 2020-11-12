@@ -2,8 +2,13 @@ package com.fortyseven.sampleapp
 
 import android.util.Log
 import androidx.compose.foundation.Text
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Button
+import androidx.compose.material.TextField
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SoftwareKeyboardController
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.ui.tooling.preview.Preview
 import com.fortyseven.sampleapp.theme.DayNightTheme
 
@@ -13,10 +18,6 @@ fun Counter() {
 
   Text("${count.value}")
   Log.d("Effect", "Composition runs.")
-
-  SideEffect {
-    Log.d("Effect", "Runs!")
-  }
 
   Button(onClick = { count.value += 1 }) {
     Text("Current count ${count.value}")

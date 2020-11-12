@@ -487,26 +487,141 @@ fun MyOwnColumn(
 
 ---
 
-## Effect handlers
+## Compose Material & Foundation 🛠
 
 <div class="card">
-  Running effects <b>from composable functions</b>.
+  Not covered on this talk.
 </div>
 
-* Not recommended to run effects from composables 🤔
-* They would run on every recomposition.
-* <span style="color:#64b5f6;">Composable functions need to be pure (idempotent).</span>
+* Material 👉 @Composables following the <span class="blueText">Material guidelines</span>.
+* Foundation 👉 <span class="blueText">generic @Composables like Box</span>.
+* Foundation also includes pieces reused by both like utilities for <span class="blueText">text, shapes, corners, etc</span>.
 
 ---
 
-## Effect handlers
+## Compose Animation 🎬 and AndroidX UI
 
 <div class="card">
-  Part of <b>compose-runtime</b>.
+  Not covered on this talk.
 </div>
 
-* Effect handlers to keep effects under control 👉 `suspend`.
-* <span style="color:#64b5f6;">Tied to KotlinX Coroutines.</span>
+* <span class="blueText">Compose Animation</span> 👉 All animation APIs for compose.
+* <span class="blueText">AndroidX UI</span> 👉 Tooling around compose: Compose testing utilities, support for the tooling around Compose like the layout inspector or the preview.
+
+
+---
+
+## Effect handlers 🌀
+
+<div class="card">
+  They belong to the <b>Runtime</b>, but let's cover them separately.
+</div>
+
+* All apps contain effects.
+* Don't run effects directly from composables 🙅 🤔 (They'd run on <span class="yellowText">every recomposition</span>) 👉 unexpected behavior.
+* Wrap them in effect handlers to make the effect lifecycle aware 👉 Make sure effects run <span class="blueText">on the correct lifecycle step</span> + <span class="blueText">correct environment</span> + <span class="blueText">are bound by the Composable lifecycle</span>.
+
+---
+
+## Effect handlers 🌀
+
+<div class="card">
+  They're under heavy development iterations.
+</div>
+
+* <span class="blueText">Disclaimer:</span> Names and existing variants vary frequently.
+* This covers effect handlers as of today <span class="blueText">(1.0.0-alpha07)</span>.
+
+---
+
+## Effect handlers 🌀
+
+<div class="card">
+  There are <b>two types of Effect Handlers</b>.
+</div>
+
+* <span class="blueText">Non suspending effects</span> example 👉 Run a side effect to initialize some property when the Composable enters the composition.
+* <span class="blueText">Suspending effects</span> example 👉 Load data from network to feed a UI state.
+
+---
+
+## Effect handlers 🌀
+
+<div class="card">
+  <b>onActive / onDispose</b>
+</div>
+
+* Fired <span class="blueText">once after initial composition</span> and never again.
+* Use it to fire a single time effect for initialization.
+* E.g: Initialize a callback when entering composition 👇
+
+```kotlin
+@Composable
+fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
+    val dispatcher = BackPressedDispatcherAmbient.current.onBackPressedDispatcher
+
+    val backCallback = remember {
+        object : OnBackPressedCallback(enabled) {
+            override fun handleOnBackPressed() {
+                onBackPressed()
+            }
+        }
+    }
+
+    onActive {
+        dispatcher.addCallback(backCallback)
+        onDispose {
+            backCallback.remove()
+        }
+    }
+}
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
+
+---
+
+## Effect handlers 🌀
+
+<div class="card">
+  <b>onDispose</b> can be used alone
+</div>
+
+* Fired <span class="blueText">once after initial composition</span> and never again.
+* Use it to fire a single time effect for initialization.
+* E.g: Initialize a callback when entering composition 👇
+
+```kotlin
+@Composable
+fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
+    val dispatcher = BackPressedDispatcherAmbient.current.onBackPressedDispatcher
+
+    val backCallback = remember {
+        object : OnBackPressedCallback(enabled) {
+            override fun handleOnBackPressed() {
+                onBackPressed()
+            }
+        }
+    }
+
+    onDispose {
+        backCallback.remove()
+    }
+}
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
+
+---
+
+## Effect handlers 🌀
+
+<div class="card">
+  <b>LaunchedEffect</b> runs the effect on the dispatcher used the Recomposer was constructed with, which can vary.
+</div>
+
+* For `ComponentActivity.setContent` calls will be <b>AndroidUiDispatcher.Main</b>.
+* That one performs dispatch during a main looper handler callback or choreographer's animation frame stage, <span class="blueText">whichever comes first</span>.
+* For compose-powered views attached to windows owned by different UI threads it might be an `AndroidUiDispatcher` linked to a different Looper+Choreographer.
+
 
 ---
 
