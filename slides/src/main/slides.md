@@ -184,14 +184,12 @@ internal interface LifecycleManager {
 
 ## Runtime 🏃
 
-<div class="card">
-  The Composition takes place first.
-</div>
+<img src="assets/The order of Runtime.png"/>
 
-* First, composition takes place 👉 Slot table is filled with relevant data.
-* Once ready, all recorded changes (List<Change<N>) are applied (Applier<N>).
-* Later on, recomposition might be required 👉 (State change) 👉 Update slot table 👉 apply changes again.
-* After applying changes, all lifecycle events (leave / enter) are dispatched in LIFO order, and finally the side effects.
+* Composition first 👉 <span class="blueText">Adds relevant data to the table</span>.
+* Once done 👉 <span class="blueText">Apply all recorded changes</span> 📲
+* Composables visible! 👉 time for <span class="blueText">Lifecycle events</span>.
+* Lifecycle events triggered! 👉 <span class="blueText">time to run the SideEffects</span>.
 
 ---
 
