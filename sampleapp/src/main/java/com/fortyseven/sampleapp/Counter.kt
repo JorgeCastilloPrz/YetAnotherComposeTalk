@@ -19,6 +19,10 @@ fun Counter() {
   Text("${count.value}")
   Log.d("Effect", "Composition runs.")
 
+  onCommit {
+    Log.d("Effect", "onCommit!")
+  }
+
   Button(onClick = { count.value += 1 }) {
     Text("Current count ${count.value}")
   }

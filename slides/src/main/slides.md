@@ -22,19 +22,19 @@
 
 * Kotlin compiler plugin Targeting Kotlin <span class="blueText">1.4 IR</span>.
 * Scans for all <span class="blueText">`@Composable`</span> functions.
-* Rewrites them (generate convenient IR) to include relevant info when called 👉 (<span class="blueText">`Composer`</span> and unique keys).
+* Rewrites them (generate convenient IR) to include relevant info when called.
 * Unlocks runtime optimizations.
-* <span class="blueText">*(Smart recomposition, offloading compositions to different threads, avoiding extra boilerplate for "Stable" apis... etc)*</span>
+* <span class="blueText">*(Smart recomposition, offload compositions to different threads, avoid redundant boilerplate for "Stable" apis...)*</span>
 
 ---
 
 ## Compose compiler ⚙
 
-<div class="card">
-  The Composer will drive the composition <b>at runtime</b>.
-</div>
-
 <img src="assets/Compose Compiler.png"/>
+
+<div class="card">
+  Composer will drive the composition / recomposition <b>at runtime</b>.
+</div>
 
 ---
 
@@ -56,19 +56,19 @@ fun MyComposable($composer: Composer, $key: Int) {
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
-* But how do we know <span class="blueText">@Composable</span> functions are <span class="blueText">called from the right context</span>? 🤔
+* How can we ensure the <span class="blueText">`Composer`</span> can be <span class="blueText">passed at all levels?</span>
 
 ---
 
 ## Compiler checks ⚙
 
 <div class="card">
-    👇 Composable functions are similar to suspend functions 👇<br/><b>impose a calling context</b>.
+    👇 <b>Imposing a calling context</b> 👇
 </div>
 
 * Requirement imposed by the Compiler <span class="blueText">frontend</span> phase <span class="yellowText">(static checks)</span> 👉 fast feedback loop.
-* Can <span class="blueText">only be called from other `@Composable` functions</span>
-* Never have standard functions calling composable ones.
+* Can <span class="blueText">only be called from other `@Composable` functions</span>.
+* Standard functions can't call composable ones 🙅
 * Ensure a pure <span class="blueText">@Composable</span> function call stack.
 * The compiler can make the <span class="blueText">Composer</span> available at all levels.
 
@@ -96,7 +96,7 @@ fun MyComposable($composer: Composer, $key: Int) {
 
 <img src="assets/Runtime concern separation.png"/>
 
-* The interpreter has the big picture 👉 Can decide how to execute / optimize it.
+* The interpreter has the big picture 👉 Can decide how to execute / optimize the program.
 * The interpreter is <span class="blueText">decoupled</span> from the program.
 
 ---
@@ -104,11 +104,11 @@ fun MyComposable($composer: Composer, $key: Int) {
 ## Compose Runtime 🏃
 
 <div class="card">
-    Creating the in-memory representation 👉 The <b>Slot table</b>
+    In-memory representation 👉 The <b>Slot table</b>
 </div>
 
-* Driven by the <span class="blueText">Composer</span> 👉 Built during composition.
-* First composition 👉 Adds all nodes to the tree.
+* Built by the <span class="blueText">Composer</span> 👉 during composition.
+* First composition 👉 Adds nodes to the tree.
 * Every recomposition 👉 Updates the table.
 * Table interpreted later on 👉 <span class="blueText">materializes UI</span> on screen 📱
 
@@ -126,14 +126,10 @@ fun MyComposable($composer: Composer, $key: Int) {
 
 * Slot table 👉 generic node structure.
 * While reading our composable function tree 👉 Composer <span class="blueText">adds, removes, replaces, or moves</span> nodes based on our logics <span class="yellowText">(think of conditional logics)</span>.
-* Those operations are represented by <span class="blueText">emitting</span> changes over the table.
+* Those operations are represented by <span class="blueText">emitting</span> generic changes over the table.
 
 ```kotlin
-internal typealias Change<N> = (
-    applier: Applier<N>,
-    slots: SlotWriter,
-    lifecycleManager: LifecycleManager
-) -> Unit
+internal typealias Change<N> // N is the chosen node type
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
@@ -235,7 +231,7 @@ recordApplierOperation { applier, _, _ ->
 * Composition first 👉 <span class="blueText">Adds relevant data to the table</span>.
 * Once done 👉 <span class="blueText">Apply all recorded changes</span> 📲
 * Composables visible! 👉 time for <span class="blueText">Lifecycle events</span>.
-* Lifecycle events triggered! 👉 <span class="blueText">time to run the SideEffects</span>.
+* Lifecycle events triggered! 👉 <span class="blueText">time to run recorded SideEffects</span>.
 
 * Recomposition required? 👉 <span class="blueText">back to step one</span> ⏫
 
@@ -273,7 +269,7 @@ fun Counter($composer: Composer) {
 
 * `updateScope` invoked by the Runtime <span class="blueText">for recomposition</span>.
 * `$composer.end()` returns `null` if no observable model was read during the composition.
-* In that case 👉 we can avoid recomposing! <span class="blueText">(not needed)</span>
+* In that case <span class="blueText">recomposition will not be needed.</span>
 
 ```kotlin
 @Composable
@@ -289,8 +285,8 @@ fun HelloWorld($composer: Composer) {
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
-* All the boilerplate added is <span class="blueText">generated by the Compiler</span>.
-* `RecomposeScope` provides the `updateScope` function and works via the <span class="blueText">Composer 👉 Recomposer</span>.
+* All boilerplate is added <span class="blueText">by the Compiler</span>.
+* `RecomposeScope` works via the <span class="blueText">Composer 👉 Recomposer</span>.
 
 ---
 
@@ -300,14 +296,30 @@ fun HelloWorld($composer: Composer) {
  <b>Positional Memoization</b> when reading from the slot table.
 </div>
 
-* the Runtime can <span class="blueText">remember the result of a `@Composable` function call</span> and return it without computing it again whenever not required.
-* Think of the <span class="blueText">`remember`</span> function.
+* The Runtime can <span class="blueText">remember the result of a `@Composable` function call</span> and return it without computing it again whenever not required.
+* <span class="yellowText">Think of the `remember` function</span>.
 
 ```kotlin
 @Composable
-fun HelloWorld() {
-  val count = remember { mutableStateOf("Default value") }
-}
+fun Modifier.verticalGradientScrim(color: Color, numStops: Int = 16): Modifier =
+  composed {
+    val colors = remember(color, numStops) { computeColors(color, numStops) }
+
+    var height by remember { mutableStateOf(0f) }
+
+    val brush = remember(color, numStops, startYPercentage, endYPercentage, height) {
+      VerticalGradient(
+        colors = colors,
+        startY = height * startYPercentage,
+        endY = height * endYPercentage
+      )
+    }
+
+    drawBehind {
+      height = size.height
+      drawRect(brush = brush)
+    }
+  }
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
@@ -316,13 +328,13 @@ fun HelloWorld() {
 ## Compose Runtime 🏃
 
 <div class="card">
-  Composition & recomposition is intentionally <b>coupled to KotlinX Coroutines</b>.
+  Composition / recomposition intentionally <b>coupled to KotlinX Coroutines</b>.
 </div>
 
-* <span class="blueText">Can't replace</span> it unless you write your complete runtime 👉 Including everything we've described so far 😅
 * Uses it for <span class="blueText">structured concurrency</span> 👉 Parallel recomposition, offload recomposition to different threads...
 * Uses it for <span class="blueText">automatic Cancellation</span> in effect handlers ⏩
-* But you can <span class="blueText">provide your own Applier<N> and fpes</span> 👉 We'll show that ahead in this talk.
+* <span class="blueText">Can't replace</span> it unless you write your complete runtime 👉 Including everything we've seen so far 😅
+* But you can <span class="blueText">provide your own Applier<N> and nodes</span> 👉 We'll show that ahead on this talk.
 
 ---
 
@@ -439,15 +451,15 @@ class UiApplier(private val root: Any) : Applier<Any> {
   <b>LayoutNode</b> is an element in the Layout hierarchy <b>yielded by Compose UI</b>.
 </div>
 
-* It is <span class="blueText">attached to an Owner</span> when materialized by the Applier.
-* Underlying <span class="blueText">connection with the View system</span> 👉 layout, input, drawing, accessibility...
-* It <span class="blueText">keeps a reference to its parent LayoutNode</span> or the Owner when it's the root.
+* <span class="blueText">Attached to an Owner</span> when materialized.
+* Owner 👉 <span class="blueText">Connection with the View system</span> 👉 layout, input, drawing, accessibility...
+* It <span class="blueText">keeps a reference to its parent</span> or the Owner when it's root.
 
-<img src="assets/LayoutNode hierarchy.png"/>
+<img style="margin-top:40px;" src="assets/LayoutNode hierarchy.png"/>
 
 * It <span class="blueText">keeps a reference to its children</span>.
 * It keeps track of all children <span class="blueText">measuring / placing</span> and measures itself.
-* Requests remeasuring for itself and its parent when attached / removed.
+* Requests remeasuring itself and its parent when attached / removed.
 
 ---
 
@@ -517,7 +529,7 @@ fun MyOwnColumn(
   They belong to the <b>Runtime</b>, but let's cover them separately.
 </div>
 
-* All apps contain effects.
+* <span class="blueText">All apps contain effects</span>.
 * Don't run effects directly from composables 🙅 🤔 (They'd run on <span class="yellowText">every recomposition</span>) 👉 unexpected behavior.
 * Wrap them in effect handlers to make the effect lifecycle aware 👉 Make sure effects run <span class="blueText">on the correct lifecycle step</span> + <span class="blueText">correct environment</span> + <span class="blueText">are bound by the Composable lifecycle</span>.
 
@@ -526,22 +538,23 @@ fun MyOwnColumn(
 ## Effect handlers 🌀
 
 <div class="card">
-  They're under heavy development iterations.
+  They're <b>under heavy development</b> iterations.
 </div>
 
 * <span class="blueText">Disclaimer:</span> Names and existing variants vary frequently.
 * This covers effect handlers as of today <span class="blueText">(1.0.0-alpha07)</span>.
+* Expect changes! ⚠️
 
 ---
 
 ## Effect handlers 🌀
 
 <div class="card">
-  There are <b>two types of Effect Handlers</b>.
+  There are <b>two categories of Effect Handlers</b>.
 </div>
 
-* <span class="blueText">Non suspending effects</span> example 👉 Run a side effect to initialize some property when the Composable enters the composition.
-* <span class="blueText">Suspending effects</span> example 👉 Load data from network to feed a UI state.
+* <span class="blueText">Non suspending effects</span> 👉 E.g: Run a side effect to initialize some property when the Composable enters the composition.
+* <span class="blueText">Suspending effects</span> 👉 E.g: Load data from network to feed some UI state.
 
 ---
 
@@ -571,7 +584,7 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
     onActive {
         dispatcher.addCallback(backCallback)
         onDispose {
-            backCallback.remove()
+            backCallback.remove() // avoid leaks!
         }
     }
 }
@@ -583,12 +596,53 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
 ## Effect handlers 🌀
 
 <div class="card">
-  <b>onDispose</b> can be used alone
+  <b>onDispose</b> alone
 </div>
 
-* Fired <span class="blueText">once after initial composition</span> and never again.
-* Use it to fire a single time effect for initialization.
-* E.g: Initialize a callback when entering composition 👇
+* Sometimes you only want to <span class="blueText">dispose something when the @Composable leaves the composition</span>.
+* E.g: Some remembered state you want to dispose explicitly.
+
+```kotlin
+@Composable
+fun MyComposable() {
+    val presenter by remember { MyComposablePresenter() }
+
+    /* ... */
+
+    onDispose {
+        presenter.clear()
+    }
+}
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
+
+---
+
+## Effect handlers 🌀
+
+<div class="card">
+  <b>onCommit {}</b> (no params) / <b>onDispose</b>
+</div>
+
+* Fired <span class="blueText">once after initial composition, and then after every recomposition</span>.
+* Good to run code in lock-step with the composition.
+* Can dispose in the end 👇
+
+```kotlin
+>INSERT USE CASE<
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
+
+---
+
+## Effect handlers 🌀
+
+<div class="card">
+  <b>onCommit(v1, v2...) {}</b> or <b>onCommit(varargs) {}</b> / <b>onDispose</b>
+</div>
+
+* Fired <span class="blueText">after initial composition, then after every recomposition only when keys change</span>.
+* Convenient for effects that need to run <span class="blueText">based on their input</span>.
 
 ```kotlin
 @Composable
@@ -603,10 +657,34 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
         }
     }
 
-    onDispose {
-        backCallback.remove()
+    onCommit(dispatcher) {
+        // Whenever there's a new dispatcher, set up the callback
+        dispatcher.addCallback(backCallback)
+        onDispose {
+            backCallback.remove() // avoid leaks!
+        }
     }
 }
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
+
+* `onCommit(true) {}` might replace `onActive {}` 👉 it runs just the first time (parameter doesn't change).
+
+---
+
+## Effect handlers 🌀
+
+<div class="card">
+  <b>invalidate</b>
+</div>
+
+* <span class="blueText">An effect</span> itself, not an effect handler.
+* Invalidates the composition locally 👉 <span class="blueText">enforce a recomposition</span>.
+* ⚠️ Do not enforce recomposition like this 👉 observe state instead 👉 smart recomposition only when required.
+* For animations 👉 there are APIs to await for next rendering frame 👉 canvas frame-based animations.
+
+```kotlin
+>INSERT USE CASE<
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
@@ -615,54 +693,46 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
 ## Effect handlers 🌀
 
 <div class="card">
-  <b>LaunchedEffect</b> runs the effect on the dispatcher used the Recomposer was constructed with, which can vary.
+  <b>SideEffect</b>
 </div>
 
-* For `ComponentActivity.setContent` calls will be <b>AndroidUiDispatcher.Main</b>.
-* That one performs dispatch during a main looper handler callback or choreographer's animation frame stage, <span class="blueText">whichever comes first</span>.
-* For compose-powered views attached to windows owned by different UI threads it might be an `AndroidUiDispatcher` linked to a different Looper+Choreographer.
+* Recorded via Composer 👉 LifecycleManager.
+* Triggered after applying changes and dispatching all lifecycle events.
 
 
 ---
 
-## Effect handlers
+## Effect handlers 🌀
 
 <div class="card">
-  Stored as description of effects in the Composer.
+  <b>DisposableEffect</b>
 </div>
-
-* The `Composer` is read only.
-* Slot table updates are pushed to the `Composer` as deferred ops to be applied later.
-* They're descriptions of effects.
 
 ---
 
-## But we'll need a runtime
+## Effect handlers 🌀
 
 <div class="card">
-    Every suspended program <b>requires an environment</b> (runtime) to run.
+  <b>rememberCoroutineScope</b>
 </div>
 
-* Suspend makes our program <u>declarative</u> 👉 description of effects.
-* Crawls the call stack up until the integration point 👉 coroutine launch.
+* <span class="blueText">Suspended effect</span>.
+* Creates `CoroutineScope` bound to the context used to create the Recomposer (and by the applier) by default 👉 Usually `AndroidUiDispatcher.Main`.
+* Effect gets cancelled when leaving the composition.
+* Same context used across recompositions.
 
 ---
 
-## Environment in KotlinX
+## Effect handlers 🌀
 
-* KotlinX Coroutines builders 👉 launch, async.
+<div class="card">
+  <b>LaunchedEffect</b>
+</div>
 
-```kotlin
-class MyFragment: Fragment() {
-  override fun onViewCreated(...) {
-    /* ... */
-    viewLifecycleOwner.lifecycleScope.launch {
-      // suspended program 🍃
-    }
-  }
-}
-```
-<!-- .element: class="arrow" data-highlight-only="true" -->
+* <span class="blueText">Suspended effect</span>.
+* Runs the effect on the applier dispatcher (Usually `AndroidUiDispatcher.Main`) when entering the composition.
+* <span class="blueText">Cancels</span> the effect when leaving the composition.
+* <span class="blueText">Cancels and relaunches</span> the effect when the input changes.
 
 ---
 
