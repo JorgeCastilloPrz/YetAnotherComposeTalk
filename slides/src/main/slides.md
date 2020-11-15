@@ -499,6 +499,24 @@ fun MyOwnColumn(
 
 ---
 
+## Compose UI 📲
+
+<div class="card">
+ <b>Custom nodes and Applier</b> - Practical use case (Andrei Shikov <b>@shikasd_</b>)👇
+</div>
+
+* Building a <b>web app</b> with Compose
+* <span class="blueText">Server side composition</span> 👉 apply changes (Applier) as commands sent to client via websocket.
+* <span class="blueText">Client side rendering / user interaction events</span>.
+* In-memory DOM representation via `Applier<HtmlNode>`.
+* <span class="blueText">HtmlNode</span> 👉 representation of a UI element.
+
+https://medium.com/@shikasd/composing-in-the-wild-145761ad62c3
+
+<img style="width:600px" src="assets/Compose Web Server.png"/>
+
+---
+
 ## Compose Material & Foundation 🛠
 
 <div class="card">
@@ -542,7 +560,7 @@ fun MyOwnColumn(
 </div>
 
 * <span class="blueText">Disclaimer:</span> Names and existing variants vary frequently.
-* This covers effect handlers as of today <span class="blueText">(1.0.0-alpha07)</span>.
+* This covers effect handlers as of today <span class="blueText">(1.0.0-SNAPSHOT)</span>.
 * Expect changes! ⚠️
 
 ---
@@ -561,11 +579,12 @@ fun MyOwnColumn(
 ## Effect handlers 🌀
 
 <div class="card">
-  <b>onActive / onDispose</b>
+  <b>DisposableEffect</b> (old onCommit + onDispose)
 </div>
 
-* Fired <span class="blueText">once after initial composition</span> and never again.
-* Use it to fire a single time effect for initialization.
+* Side effect of composition <span class="blueText">lifecycle</span> (onEnter / onLeave).
+* Fired <span class="blueText">first time and every time the inputs change</span>.
+* Requires `onDispose` callback at the end 👉 disposed on leaving composition and every time inputs change.
 * E.g: Initialize a callback when entering composition 👇
 
 ```kotlin
@@ -581,7 +600,7 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
         }
     }
 
-    onActive {
+    DisposableEffect(dispatcher) { // dispose/relaunch if dispatcher changes
         dispatcher.addCallback(backCallback)
         onDispose {
             backCallback.remove() // avoid leaks!
@@ -596,53 +615,11 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
 ## Effect handlers 🌀
 
 <div class="card">
-  <b>onDispose</b> alone
+  <b>DisposableEffect(true)</b> (old onActive / onCommit(true))
 </div>
 
-* Sometimes you only want to <span class="blueText">dispose something when the @Composable leaves the composition</span>.
-* E.g: Some remembered state you want to dispose explicitly.
-
-```kotlin
-@Composable
-fun MyComposable() {
-    val presenter by remember { MyComposablePresenter() }
-
-    /* ... */
-
-    onDispose {
-        presenter.clear()
-    }
-}
-```
-<!-- .element: class="arrow" data-highlight-only="true" -->
-
----
-
-## Effect handlers 🌀
-
-<div class="card">
-  <b>onCommit {}</b> (no params) / <b>onDispose</b>
-</div>
-
-* Fired <span class="blueText">once after initial composition, and then after every recomposition</span>.
-* Good to run code in lock-step with the composition.
-* Can dispose in the end 👇
-
-```kotlin
->INSERT USE CASE<
-```
-<!-- .element: class="arrow" data-highlight-only="true" -->
-
----
-
-## Effect handlers 🌀
-
-<div class="card">
-  <b>onCommit(v1, v2...) {}</b> or <b>onCommit(varargs) {}</b> / <b>onDispose</b>
-</div>
-
-* Fired <span class="blueText">after initial composition, then after every recomposition only when keys change</span>.
-* Convenient for effects that need to run <span class="blueText">based on their input</span>.
+* Same thing, but given constant argument 👉 fired <span class="blueText">only first time</span> and never more.
+* Disposed on leaving composition.
 
 ```kotlin
 @Composable
@@ -657,34 +634,13 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
         }
     }
 
-    onCommit(dispatcher) {
-        // Whenever there's a new dispatcher, set up the callback
+    DisposableEffect(true) { // Will never relaunch (constant key)
         dispatcher.addCallback(backCallback)
         onDispose {
             backCallback.remove() // avoid leaks!
         }
     }
 }
-```
-<!-- .element: class="arrow" data-highlight-only="true" -->
-
-* `onCommit(true) {}` might replace `onActive {}` 👉 it runs just the first time (parameter doesn't change).
-
----
-
-## Effect handlers 🌀
-
-<div class="card">
-  <b>invalidate</b>
-</div>
-
-* <span class="blueText">An effect</span> itself, not an effect handler.
-* Invalidates the composition locally 👉 <span class="blueText">enforce a recomposition</span>.
-* ⚠️ Do not enforce recomposition like this 👉 observe state instead 👉 smart recomposition only when required.
-* For animations 👉 there are APIs to await for next rendering frame 👉 canvas frame-based animations.
-
-```kotlin
->INSERT USE CASE<
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
@@ -696,17 +652,48 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
   <b>SideEffect</b>
 </div>
 
-* Recorded via Composer 👉 LifecycleManager.
-* Triggered after applying changes and dispatching all lifecycle events.
+* Recorded to run after composition changes applied and lifecycle events triggered.
+* For <span class="blueText">non suspended effects that do not require disposing</span>.
+* <span class="blueText">Runs after every composition / recomposition</span>.
+* Useful to publish updates to <span class="blueText">external states</span> unrelated to the composition.
 
+```kotlin
+@Composable
+fun MyScreen(drawerTouchHandler: TouchHandler) {
+  val drawerState = rememberDrawerState(DrawerValue.Closed)
+
+  SideEffect {
+    drawerTouchHandler.enabled = drawerState.isOpen
+  }
+
+  // ...
+}
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
 
 ---
 
 ## Effect handlers 🌀
 
 <div class="card">
-  <b>DisposableEffect</b>
+  <b>invalidate</b>
 </div>
+
+* <span class="blueText">An effect</span> itself, not an effect handler.
+* Invalidates composition locally 👉 <span class="blueText">enforces recomposition</span>.
+* ⚠️ <span class="yellowText">Use sparingly!</span> ⚠️ observe state instead 👉 smart recomposition when changes.
+* For animations there are APIs to await for next frame.
+* Requires handling thread safety manually.
+
+```kotlin
+@Composable
+fun MyComposable(presenter: Presenter) {
+    val user = presenter.loadUser { invalidate() } // not a State!
+
+    Text(text = "The loaded user: ${user.name})
+}
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
 
 ---
 
@@ -716,10 +703,36 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
   <b>rememberCoroutineScope</b>
 </div>
 
-* <span class="blueText">Suspended effect</span>.
-* Creates `CoroutineScope` bound to the context used to create the Recomposer (and by the applier) by default 👉 Usually `AndroidUiDispatcher.Main`.
-* Effect gets cancelled when leaving the composition.
-* Same context used across recompositions.
+* <span class="blueText">To run suspended effects</span>.
+* Creates `CoroutineScope` bound to this point in composition.
+* Scope <span class="blueText">cancelled when leaving composition</span>.
+* Same scope returned across recompositions.
+* Use this scope to <span class="blueText">launch jobs in response to user interactions</span>.
+
+```kotlin
+@Composable
+fun SearchScreen() {
+  val scope = rememberCoroutineScope()
+  var currentJob by remember { mutableStateOf<Job?>(null) }
+  var items by remember { mutableStateOf<List<Item>>(emptyList()) }
+
+  Column {
+    Row {
+      TextInput(
+        afterTextChange = { text ->
+          currentJob?.cancel()
+          currentJob = scope.async {
+            delay(threshold)
+            items = viewModel.search(query = text)
+          }
+        }
+      )
+    }
+    Row { ItemsVerticalList(items) }
+  }
+}
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
 
 ---
 
@@ -729,10 +742,47 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
   <b>LaunchedEffect</b>
 </div>
 
-* <span class="blueText">Suspended effect</span>.
+* <span class="blueText">To run suspended effects</span>.
 * Runs the effect on the applier dispatcher (Usually `AndroidUiDispatcher.Main`) when entering the composition.
 * <span class="blueText">Cancels</span> the effect when leaving the composition.
-* <span class="blueText">Cancels and relaunches</span> the effect when the input changes.
+* <span class="blueText">Cancels and relaunches</span> the effect when the subject changes.
+* Useful to span a job across recompositions.
+
+```kotlin
+@Composable
+fun SpeakerList(eventId: String) {
+  var speakers by remember { mutableStateOf<List<Speaker>>(emptyList()) }
+  LaunchedTask(eventId) { // cancelled / relaunched when eventId varies
+    speakers = viewModel.loadSpeakers() // suspended effect
+  }
+
+  ItemsVerticalList(speakers)
+}
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
+
+---
+
+## Effect handlers 🌀
+
+<div class="card">
+  <b>LaunchedEffect</b> can be simplified with <b>produceState</b>
+</div>
+
+* When used to feed a state.
+* Relies on `LaunchedEffect`.
+
+```kotlin
+@Composable
+fun SearchScreen(eventId: String) {
+  val uiState = produceState(initialValue = emptyList<Speaker>(), eventId) {
+    viewModel.loadSpeakers() // suspended effect
+  }
+
+  ItemsVerticalList(uiState.value)
+}
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
 
 ---
 
