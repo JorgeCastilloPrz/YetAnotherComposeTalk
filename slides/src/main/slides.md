@@ -177,13 +177,13 @@ recordApplierOperation { applier, _, _ ->
 ## Compose Runtime 🏃
 
 <div class="card">
-  Examples of <b>node types</b>?
+  What can be <b>stored in the slot table</b>?
 </div>
 
 Anything driven by a <span class="blueText">@Composable function</span> 👇
-* <span class="blueText">UI nodes</span> (LayoutNodes, DOMElements...).
-* Nodes that store <span class="blueText">State</span>.
-* Remembered data (`remember`).
+* Operations to add / remove <span class="blueText">UI nodes</span> (LayoutNodes, DOMElements...).
+* Operations to store <span class="blueText">State</span>.
+* Operations to remembered data (`remember`).
 * <span class="blueText">Composable function calls</span>.
 * <span class="blueText">Providers and Ambients</span>.
 * <span class="blueText">Side effects</span> of composition lifecycle (onEnter / onLeave).
@@ -409,7 +409,7 @@ class UiApplier(private val root: Any) : Applier<Any> {
 ## Compose UI 📲
 
 <div class="card">
-  <b>LayoutNode</b> is an element in the Layout hierarchy <b>yielded by Compose UI</b>.
+  <b>LayoutNode</b> is an in memory representation of our UI nodes
 </div>
 
 * <span class="blueText">Attached to an Owner</span> when materialized.
@@ -418,44 +418,7 @@ class UiApplier(private val root: Any) : Applier<Any> {
 
 <img style="margin-top:40px;" src="assets/LayoutNode hierarchy.png"/>
 
-* It <span class="blueText">keeps a reference to its children</span>.
-* It keeps track of all children <span class="blueText">measuring / placing</span> and measures itself.
-
----
-
-## Compose UI 📲
-
-<div class="card">
-  Compose UI gives us the basic piece of UI, the <b>Layout</b>.
-</div>
-
-* Any other existing <span class="blueText">@Composable</span> layouts are built using it.
-* Remember 👉 It emits a `Change<LayoutNode>`.
-
-```kotlin
-@Composable
-fun MyOwnColumn(
-    modifier: Modifier = Modifier,
-    children: @Composable() () -> Unit
-) {
-    Layout(modifier = modifier, children = children) { measurables, constraints ->
-        val placeables = measurables.map { measurable ->
-            // Measure children based on parent constraints
-            measurable.measure(constraints)
-        }
-
-        layout(constraints.maxWidth, constraints.maxHeight) {
-            var yPosition = 0
-
-            placeables.forEach { placeable -> // Place children in parent
-                placeable.placeRelative(x = 0, y = yPosition)
-                yPosition += placeable.height
-            }
-        }
-    }
-}
-```
-<!-- .element: class="arrow" data-highlight-only="true" -->
+* It keeps track of all children and how to <span class="blueText">measure / place</span> those and itself.
 
 ---
 
@@ -466,7 +429,7 @@ fun MyOwnColumn(
 </div>
 
 * <span class="blueText">UI testing libs</span> that interpret changes by creating abstractions of the UI elements to assert over.
-* Support <span class="blueText">other platforms like desktop</span> -> DOMElements for the nodes, DesktopApplier implementation for the bridging.
+* Support <span class="blueText">other platforms like desktop or web</span>.
 * <span class="blueText">Synchronizing an object graph</span> by serializing / sending diffs.
 * <span class="blueText">Control hardware</span> 👉 minimize commands to reflect a change.
 * Etc
