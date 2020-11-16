@@ -127,7 +127,7 @@ fun Counter($composer: Composer, $key: Int) {
 ```kotlin
 @Composable inline fun Layout(...) {
     emit<LayoutNode, Applier<Any>>( // emits change to insert a node
-        ctor = LayoutEmitHelper.constructor,
+        ctor = { LayoutNode() },
         update = {
             set(measureBlocks, LayoutEmitHelper.setMeasureBlocks)
             set(DensityAmbient.current, LayoutEmitHelper.setDensity)
@@ -341,8 +341,7 @@ fun Modifier.verticalGradientScrim(color: Color, numStops: Int = 16): Modifier =
 ```kotlin
 class UiApplier(private val root: Any) : Applier<Any> {
     private val stack = Stack<Any>()
-    private val pendingInserts = Stack<PendingInsert>()
-
+    
     override var current: Any = root
 
     override fun down(node: Any) { // adds a node
