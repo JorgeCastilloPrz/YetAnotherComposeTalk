@@ -12,7 +12,7 @@ data class Speaker(val id: String, val name: String)
 data class TouchHandler(var enabled: Boolean = true)
 
 @Composable
-fun MyScreen(drawerTouchHandler: TouchHandler) {
+fun Counter(drawerTouchHandler: TouchHandler) {
   val drawerState = rememberDrawerState(DrawerValue.Closed)
 
   SideEffect {
@@ -26,6 +26,6 @@ fun MyScreen(drawerTouchHandler: TouchHandler) {
 @Composable
 fun CounterPreview() {
   DayNightTheme {
-    Counter()
+    // Counter()
   }
 }

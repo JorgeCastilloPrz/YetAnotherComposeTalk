@@ -18,7 +18,7 @@ fun Screen(modifier: Modifier = Modifier) {
   ) {
     // FullScreenLoading()
     Box(alignment = Alignment.Center) {
-      Counter()
+      // Counter()
     }
   }
 }
