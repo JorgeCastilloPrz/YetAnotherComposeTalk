@@ -20,7 +20,7 @@
   <b>Plugin</b> to generate metadata to satisfy the <b>Runtime</b> needs.
 </div>
 
-* Scans for all <span class="blueText">`@Composable`</span> functions 👉 <span class="blueText">generates convenient IR</span> to include relevant info when called (1.4 IR)
+* Scans for <span class="blueText">`@Composable`</span> functions 👉 <span class="blueText">generates convenient IR</span> to include relevant info when called (1.4 IR)
 * Makes them <span class="blueText">restartable / cacheable</span>.
 * Unlocks runtime optimizations.
 
@@ -70,7 +70,6 @@ fun Counter($composer: Composer, $key: Int) {
 
 * Requirement imposed by the Compiler <span class="blueText">frontend</span> phase <span class="yellowText">(static checks)</span> 👉 fast feedback loop.
 * Can <span class="blueText">only be called from other `@Composable` functions</span>.
-* Ensure a pure <span class="blueText">@Composable</span> function call stack 👇
 * Compiler can make the <span class="blueText">Composer available at all levels</span>.
 
 ---
@@ -78,13 +77,13 @@ fun Counter($composer: Composer, $key: Int) {
 ## Compose Runtime 🏃
 
 <div class="card">
-    The Compose runtime is <b>declarative</b>.
+    Compose runtime is <b>declarative</b>.
 </div>
 
 <img src="assets/Runtime concern separation.png"/>
 
 * The interpreter has the big picture 👉 Can decide how to execute / consume the program.
-* Interpreter <span class="blueText">decoupled from the program</span>.
+* Interpreter <span class="blueText">decoupled from the description of the program</span>.
 
 ---
 
@@ -218,6 +217,7 @@ Any relevant data required to materialize a UI snapshot.
 
 * Recomposition required? 👉 <span class="blueText">back to step one</span> ⏮
 * Recorded side effects run after lifecycle events <span class="blueText">to ensure onEnter before</span>.
+* Side effects are discarded after a <span class="blueText">@Composable</span> leaves the composition.
 
 ---
 
@@ -241,29 +241,7 @@ fun Counter($composer: Composer) {
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
----
-
-## Compose Runtime 🏃
-
-* `updateScope` invoked by the Runtime <span class="blueText">for recomposition</span>.
-* `$composer.end()` returns `null` if no observable model was read during the composition.
-* In that case <span class="blueText">recomposition will not be needed.</span>
-
-```kotlin
-@Composable
-fun HelloWorld($composer: Composer) {
-  $composer.start()
-
-  Text($composer, "This is a hello world!")
-
-  $composer.end()?.updateScope {
-    HelloWorld(nextComposer)
-  }
-}
-```
-<!-- .element: class="arrow" data-highlight-only="true" -->
-
-* `RecomposeScope` works via the <span class="blueText">Composer 👉 Recomposer</span>.
+* `$composer.end()` returns `null` if no observable model was read during the composition 👉 recomposition not needed.
 
 ---
 
@@ -310,8 +288,7 @@ fun Modifier.verticalGradientScrim(color: Color, numStops: Int = 16): Modifier =
 
 * <span class="blueText">Structured concurrency</span> 👉 Parallel recomposition, offload recomposition to different threads...
 * <span class="blueText">Automatic Cancellation</span> in effect handlers ⏩
-* <span class="blueText">Can't replace</span> it unless you write your complete runtime 😅
-* You can <span class="blueText">provide your own Applier<N> impl and node types</span>.
+* <span class="blueText">Can't replace</span> it, but we can <span class="blueText">provide your own Applier<N> impl and node types</span>.
 
 ---
 
@@ -335,13 +312,13 @@ fun Modifier.verticalGradientScrim(color: Color, numStops: Int = 16): Modifier =
  Built-in Applier implementation for <b>Android</b>: The <b>UiApplier</b>.
 </div>
 
-* The <span class="blueText">Applier<N></span> is a visitor that <span class="blueText">visits</span> the whole node tree element by element.
 * Supports <span class="blueText">both ViewGroups and Composable LayoutNodes</span>
+* The <span class="blueText">Applier<N></span> is a visitor that <span class="blueText">visits</span> the whole node tree element by element.
 
 ```kotlin
 class UiApplier(private val root: Any) : Applier<Any> {
     private val stack = Stack<Any>()
-    
+
     override var current: Any = root
 
     override fun down(node: Any) { // adds a node
@@ -409,9 +386,8 @@ class UiApplier(private val root: Any) : Applier<Any> {
 
 * <span class="blueText">UI testing libs</span> that interpret changes by creating abstractions of the UI elements to assert over.
 * Support <span class="blueText">other platforms like desktop or web</span>.
-* <span class="blueText">Synchronizing an object graph</span> by serializing / sending diffs.
 * <span class="blueText">Control hardware</span> 👉 minimize commands to reflect a change.
-* Etc
+* ... 🤔💡
 
 ---
 
@@ -434,12 +410,11 @@ https://medium.com/@shikasd/composing-in-the-wild-145761ad62c3
 ## Effect handlers 🌀
 
 <div class="card">
-  They belong to the <b>Runtime</b>, but let's cover them separately 👍
+  They belong to the <b>Runtime</b>
 </div>
 
-* <span class="blueText">All apps contain effects</span>.
-* Don't run effects directly from composables. 🙅
-* Composables are restartable (<span class="yellowText">might run multiple times</span>).
+* <span class="blueText">Apps contain effects</span>.
+* Don't run effects directly from composables. 🙅 ➡ Composables are restartable (<span class="yellowText">might run multiple times</span>).
 * Wrap them in effect handlers to make the effect lifecycle aware 👉 Make sure effects run <span class="blueText">on the correct lifecycle step</span> + <span class="blueText">correct environment</span> + <span class="blueText">are bound by the Composable lifecycle</span>.
 
 ---
@@ -677,7 +652,7 @@ fun SearchScreen(eventId: String) {
 ## Surviving config changes?
 
 <div class="card">
-  <b>No time!</b> Will write a post or something 😅
+  <b>No time!</b> Will need to write a post 😅 🙏
 </div>
 
 ---
