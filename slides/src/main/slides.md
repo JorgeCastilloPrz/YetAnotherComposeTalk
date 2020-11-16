@@ -26,7 +26,7 @@
 
 <br/>
 
-<span class="blueText">*(Smart recomposition, parallel composition, avoid unnecessary boilerplate for "stable" apis...)*</span>
+<span class="blueText">*(Smart recomposition, parallel composition, flag "stable" apis...)*</span>
 
 ---
 
@@ -48,7 +48,7 @@
 
 ```kotlin
 @Composable
-fun MyComposable($composer: Composer, $key: Int) {
+fun Counter($composer: Composer, $key: Int) {
   val count = remember($composer, 123) { mutableStateOf(0) }
 
   Button($composer, 456, onClick = { count.value += 1 }) {
@@ -83,8 +83,8 @@ fun MyComposable($composer: Composer, $key: Int) {
 
 <img src="assets/Runtime concern separation.png"/>
 
-* The interpreter has the big picture 👉 Can decide how to execute / optimize the program.
-* The interpreter is <span class="blueText">decoupled</span> from the program.
+* The interpreter has the big picture 👉 Can decide how to execute / consume the program.
+* Interpreter <span class="blueText">decoupled from the program</span>.
 
 ---
 
@@ -108,45 +108,20 @@ fun MyComposable($composer: Composer, $key: Int) {
 ## Compose Runtime 🏃
 
 <div class="card">
-    <b>No!</b> Compose runtime works with <b>generic nodes</b> of type <b>N</b>.
+    <b>No</b>. Compose runtime works with <b>generic nodes</b> of type <b>N</b>.
 </div>
 
 * Slot table 👉 generic node structure.
-* Reading composable tree 👉 Composer <span class="blueText">adds, removes, replaces, moves</span> nodes based on logics <span class="yellowText">(think of conditional logics)</span>.
-* Those operations represented by <span class="blueText">emitting</span> generic changes of type `Change<N>` over the table.
-
----
-
-## Compose Runtime 🏃
-
-Change 👉 <span class="blueText">in memory lambda</span> that represents an effect.
-
-```kotlin
-internal typealias Change<N> = (
-    applier: Applier<N>, // interpreter 👉 materializes changes
-    slots: SlotWriter, // write changes to the table
-    lifecycleManager: LifecycleManager // side effects / lifecycle events also recorded!
-) -> Unit
-```
-<!-- .element: class="arrow" data-highlight-only="true" -->
-
-* Records lists of <span class="blueText">@Composable</span> entering events, leaving events, and side effects 👉 dispatch in order.
-
-```kotlin
-internal interface LifecycleManager {
-    fun entering(instance: CompositionLifecycleObserver)
-    fun leaving(instance: CompositionLifecycleObserver)
-    fun sideEffect(effect: () -> Unit)
-}
-```
-<!-- .element: class="arrow" data-highlight-only="true" -->
+* Reading composable tree 👉 emits changes over the table.
+* Changes to <span class="blueText">add, remove, replace, move</span> nodes based on logics <span class="yellowText">(think of conditional logics)</span>.
+* Changes emitted are generic 👉 <span class="blueText">`Change<N>`</span>.
 
 ---
 
 ## Compose Runtime 🏃
 
 <div class="card">
-  Example of how <b>Layout</b> emits a change to the table.
+  See how <b>Layout</b> emits a change to the table.
 </div>
 
 ```kotlin
@@ -165,7 +140,7 @@ internal interface LifecycleManager {
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
-* `emit` ultimately records the <span class="blueText">change of inserting a UI node</span> 👇
+* `emit` "records" a <span class="blueText">change for inserting a UI node</span> 👇
 
 ```kotlin
 recordApplierOperation { applier, _, _ ->
@@ -180,20 +155,48 @@ recordApplierOperation { applier, _, _ ->
 ## Compose Runtime 🏃
 
 <div class="card">
+  Change 👉 <b>lambda</b> that represents an <b>effect</b>.
+</div>
+
+```kotlin
+internal typealias Change<N> = (
+    applier: Applier<N>, // interpreter 👉 materializes changes
+    slots: SlotWriter, // write changes to the table
+    lifecycleManager: LifecycleManager // lifecycle is relevant when applying changes
+) -> Unit
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
+
+* onEnter / onLeave <span class="blueText">LifecycleObservers</span> are called when adding / removing / updating elements on the table.
+
+```kotlin
+internal interface LifecycleManager {
+    fun entering(instance: CompositionLifecycleObserver)
+    fun leaving(instance: CompositionLifecycleObserver)
+    fun sideEffect(effect: () -> Unit)
+}
+```
+<!-- .element: class="arrow" data-highlight-only="true" -->
+
+* Another type of Change can be recording a side effect.
+
+---
+
+## Compose Runtime 🏃
+
+<div class="card">
   What can be <b>stored in the slot table</b>?
 </div>
 
-Anything driven by a <span class="blueText">@Composable function</span> 👇
-* Operations to add / remove <span class="blueText">UI nodes</span>.
+Any relevant data required to materialize a UI snapshot.
+
+* Operations to add / remove / replace <span class="blueText">UI nodes</span>.
 * Operations to store <span class="blueText">State</span>.
 * Operations to store remembered data (`remember`).
-* <span class="blueText">Composable function calls</span>.
+* <span class="blueText">Composable function calls</span> and their parameters.
 * <span class="blueText">Providers and Ambients</span>.
 * <span class="blueText">Side effects</span> of composition lifecycle (onEnter / onLeave).
-
-<div class="card">
-  Any relevant data required to <b>materialize UI for a snapshot in time</b>.
-</div>
+* ...
 
 ---
 
@@ -214,7 +217,7 @@ Anything driven by a <span class="blueText">@Composable function</span> 👇
 <img src="assets/The order of Runtime.png"/>
 
 * Recomposition required? 👉 <span class="blueText">back to step one</span> ⏮
-* Side effects run after lifecycle events <span class="blueText">to ensure onEnter before</span>.
+* Recorded side effects run after lifecycle events <span class="blueText">to ensure onEnter before</span>.
 
 ---
 
