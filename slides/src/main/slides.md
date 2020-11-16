@@ -655,6 +655,9 @@ fun SearchScreen(eventId: String) {
   <b>No time!</b> Will need to write a post 😅 🙏
 </div>
 
+<br />
+Special thanks to Adam Powell 🙋‍
+
 ---
 
 ## Thank you! 🙌
