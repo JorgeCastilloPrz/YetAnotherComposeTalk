@@ -20,10 +20,13 @@
   <b>Plugin</b> to generate metadata to satisfy the <b>Runtime</b> needs.
 </div>
 
-* Scans for all <span class="blueText">`@Composable`</span> functions, <span class="blueText">generates convenient IR</span> to include relevant info when called (1.4 IR).
+* Scans for all <span class="blueText">`@Composable`</span> functions 👉 <span class="blueText">generates convenient IR</span> to include relevant info when called (1.4 IR)
 * Makes them <span class="blueText">restartable / cacheable</span>.
 * Unlocks runtime optimizations.
-* <span class="blueText">*(Smart recomposition, offload compositions to different threads, avoid unnecessary boilerplate...)*</span>
+
+<br/>
+
+<span class="blueText">*(Smart recomposition, parallel composition, avoid unnecessary boilerplate for "stable" apis...)*</span>
 
 ---
 
@@ -127,7 +130,7 @@ internal typealias Change<N> = (
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
-* Records a lists of <span class="blueText">@Composable</span> entering events, leaving events, and side effects 👉 dispatch in order.
+* Records lists of <span class="blueText">@Composable</span> entering events, leaving events, and side effects 👉 dispatch in order.
 
 ```kotlin
 internal interface LifecycleManager {
@@ -143,14 +146,14 @@ internal interface LifecycleManager {
 ## Compose Runtime 🏃
 
 <div class="card">
-  Example of how <b>Layout</b> ends up emitting a change to the table.
+  Example of how <b>Layout</b> emits a change to the table.
 </div>
 
 ```kotlin
 @Composable inline fun Layout(...) {
-    emit<LayoutNode, Applier<Any>>( // inserts the node
-        ctor = LayoutEmitHelper.constructor, // LayoutNode constructor lambda
-        update = { // initialize / update the node
+    emit<LayoutNode, Applier<Any>>( // emits change to insert a node
+        ctor = LayoutEmitHelper.constructor,
+        update = {
             set(measureBlocks, LayoutEmitHelper.setMeasureBlocks)
             set(DensityAmbient.current, LayoutEmitHelper.setDensity)
             set(LayoutDirectionAmbient.current, LayoutEmitHelper.setLayoutDirection)
@@ -181,9 +184,9 @@ recordApplierOperation { applier, _, _ ->
 </div>
 
 Anything driven by a <span class="blueText">@Composable function</span> 👇
-* Operations to add / remove <span class="blueText">UI nodes</span> (LayoutNodes, DOMElements...).
+* Operations to add / remove <span class="blueText">UI nodes</span>.
 * Operations to store <span class="blueText">State</span>.
-* Operations to remembered data (`remember`).
+* Operations to store remembered data (`remember`).
 * <span class="blueText">Composable function calls</span>.
 * <span class="blueText">Providers and Ambients</span>.
 * <span class="blueText">Side effects</span> of composition lifecycle (onEnter / onLeave).
@@ -210,12 +213,8 @@ Anything driven by a <span class="blueText">@Composable function</span> 👇
 
 <img src="assets/The order of Runtime.png"/>
 
-* Composition first 👉 <span class="blueText">Adds relevant data to the table</span>.
-* Once done 👉 <span class="blueText">Apply all recorded changes</span> 📲
-* Composables visible! 👉 time for <span class="blueText">Lifecycle events</span>. Enter events first, then leave events. (LIFO)
-* Lifecycle events triggered! 👉 <span class="blueText">time to run recorded SideEffects</span>.
-
-* Recomposition required? 👉 <span class="blueText">back to step one</span> ⏫
+* Recomposition required? 👉 <span class="blueText">back to step one</span> ⏮
+* Side effects run after lifecycle events <span class="blueText">to ensure onEnter before</span>.
 
 ---
 
@@ -271,7 +270,7 @@ fun HelloWorld($composer: Composer) {
  <b>Positional Memoization</b> when reading from the slot table.
 </div>
 
-* Runtime can <span class="blueText">remember result of a `@Composable` call</span> and return it without computing it again.
+* <span class="blueText">Remember result of a `@Composable` call</span> and return it without computing it again.
 * <span class="yellowText">Think of the `remember` function</span>.
 
 ```kotlin
@@ -309,7 +308,7 @@ fun Modifier.verticalGradientScrim(color: Color, numStops: Int = 16): Modifier =
 * <span class="blueText">Structured concurrency</span> 👉 Parallel recomposition, offload recomposition to different threads...
 * <span class="blueText">Automatic Cancellation</span> in effect handlers ⏩
 * <span class="blueText">Can't replace</span> it unless you write your complete runtime 😅
-* But you can <span class="blueText">provide your own Applier<N> impl and node types</span>!
+* You can <span class="blueText">provide your own Applier<N> impl and node types</span>.
 
 ---
 
@@ -319,7 +318,7 @@ fun Modifier.verticalGradientScrim(color: Color, numStops: Int = 16): Modifier =
   Materialize all recorded changes <b>into ultimate Android UI</b>.
 </div>
 
-* This module <span class="blueText">bridges the gap between the Runtime and the Platform</span>.
+* <span class="blueText">Bridges the gap between the Runtime and the Platform</span>.
 * The chosen <span class="blueText">`Applier<N>`</span> implementation does the job.
 * Provides integration with the device: layout, drawing (skia), user input...
 
@@ -353,53 +352,31 @@ class UiApplier(private val root: Any) : Applier<Any> {
         val parent = stack.pop()
         current = parent
         // ...
-        if (pendingInserts.isNotEmpty()) {
-            val pendingInsert = pendingInserts.peek()
-            if (pendingInsert.instance == instance) {
-                val index = pendingInsert.index
-                pendingInserts.pop()
-                when (parent) {
-                    is ViewGroup ->
-                        when (instance) {
-                            is View -> {
-                                adapter?.willInsert(instance, parent)
-                                parent.addView(instance, index)
-                                adapter?.didInsert(instance, parent)
-                            }
-                            is LayoutNode -> {
-                                val composeView = AndroidComposeView(parent.context)
-                                parent.addView(composeView, index)
-                                composeView.root.insertAt(0, instance)
-                            }
-                            else -> invalidNode(instance)
-                        }
-                    is LayoutNode ->
-                        when (instance) {
-                            is View -> {
-                                // Wrap the instance in an AndroidViewHolder, unless the instance
-                                // itself is already one.
-                                @OptIn(InternalInteropApi::class)
-                                val androidViewHolder =
-                                    if (instance is AndroidViewHolder) {
-                                        instance
-                                    } else {
-                                        ViewBlockHolder<View>(instance.context).apply {
-                                            view = instance
-                                        }
-                                    }
-
-                                parent.insertAt(index, androidViewHolder.toLayoutNode())
-                            }
-                            is LayoutNode -> parent.insertAt(index, instance)
-                            else -> invalidNode(instance)
-                        }
-                    else -> invalidNode(parent)
-                }
-                return
+        when (parent) {
+          is ViewGroup ->
+            when (instance) {
+              is View -> { parent.addView(instance, index) }
+              is LayoutNode -> {
+               val composeView = AndroidComposeView(parent.context)
+               parent.addView(composeView, index)
+               composeView.root.insertAt(0, instance)
+              }
+              else -> invalidNode(instance)
             }
+          is LayoutNode ->
+            when (instance) {
+              is View -> {
+                val androidViewHolder = ViewBlockHolder<View>(instance.context).apply {
+                  view = instance
+                }
+                parent.insertAt(index, androidViewHolder.toLayoutNode())
+              }
+              is LayoutNode -> parent.insertAt(index, instance)
+              else -> invalidNode(instance)
+            }
+          else -> invalidNode(parent)
         }
     }
-    // ...
 }
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
