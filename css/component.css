@@ -22,3 +22,7 @@
 .yellowText {
   color:#FFFF00;
 }
+
+.fadedOut {
+ opacity: 20%;
+}

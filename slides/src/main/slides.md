@@ -7,10 +7,10 @@
 * Compiler plugin - <span class="blueText">compose.compiler</span>
 * Runtime - <span class="blueText">compose.runtime</span>
 * UI - <span class="blueText">compose.ui</span>
-* Material - <span class="blueText">compose.material</span>
-* Foundation - <span class="blueText">compose.foundation</span>
-* Animation - <span class="blueText">compose.animation</span>
-* UI Tooling - <span class="blueText">androidx.ui</span>
+* <span class="fadedOut">Material - <span class="blueText">compose.material</span></span>
+* <span class="fadedOut">Foundation - <span class="blueText">compose.foundation</span></span>
+* <span class="fadedOut">Animation - <span class="blueText">compose.animation</span></span>
+* <span class="fadedOut">UI Tooling - <span class="blueText">androidx.ui</span></span>
 
 ---
 
@@ -22,7 +22,7 @@
 
 * Kotlin compiler plugin Targeting Kotlin <span class="blueText">1.4 IR</span>.
 * Scans for all <span class="blueText">`@Composable`</span> functions.
-* Rewrites them (generate convenient IR) to include relevant info when called.
+* Generates convenient IR to include relevant info when called.
 * Unlocks runtime optimizations.
 * <span class="blueText">*(Smart recomposition, offload compositions to different threads, avoid redundant boilerplate for "Stable" apis...)*</span>
 
@@ -50,13 +50,13 @@ fun MyComposable($composer: Composer, $key: Int) {
   val count = remember($composer, 123) { mutableStateOf(0) }
 
   Button($composer, 456, onClick = { count.value += 1 }) {
-    Text($composer, "Current count ${count.value}")
+    Text($composer, 789, "Current count ${count.value}")
   }
 }
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
-* How can we ensure the <span class="blueText">`Composer`</span> can be <span class="blueText">passed at all levels?</span>
+* How can we ensure <span class="blueText">`Composer`</span> is <span class="blueText">passed across levels?</span>
 
 ---
 
@@ -174,14 +174,14 @@ internal interface LifecycleManager {
             set(DensityAmbient.current, LayoutEmitHelper.setDensity)
             set(LayoutDirectionAmbient.current, LayoutEmitHelper.setLayoutDirection)
         },
-        skippableUpdate = materializerOf(modifier),
+        ...
         children = children
     )
 }
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
-* `emit` ultimately records the change of inserting a UI node via `recordApplierOperation` 👇
+* `emit` ultimately records the <span class="blueText">change of inserting a UI node</span> 👇
 
 ```kotlin
 recordApplierOperation { applier, _, _ ->
@@ -196,15 +196,16 @@ recordApplierOperation { applier, _, _ ->
 ## Compose Runtime 🏃
 
 <div class="card">
-  What <b>types of nodes</b> can we have on the table?
+  Examples of <b>node types</b>?
 </div>
 
-* Literally anything driven by a <span class="blueText">@Composable function</span>.
-* <span class="blueText">UI nodes</span> (like LayoutNodes or DOMElements).
-* <span class="blueText">State</span> nodes (by composable functions like remember).
+Anything driven by a <span class="blueText">@Composable function</span> 👇
+* <span class="blueText">UI nodes</span> (LayoutNodes, DOMElements...).
+* Nodes that store <span class="blueText">State</span>.
+* Remembered data (`remember`).
 * <span class="blueText">Composable function calls</span> are also recorded as nodes.
 * <span class="blueText">Providers and Ambients</span> (they're also composable functions).
-* <span class="blueText">SideEffects</span>.
+* <span class="blueText">Side effects</span> of composition lifecycle (onEnter / onLeave).
 
 <div class="card">
   Any relevant data required to <b>materialize UI for a snapshot in time</b>.
@@ -215,7 +216,7 @@ recordApplierOperation { applier, _, _ ->
 ## Compose Runtime 🏃
 
 <div class="card">
-  Old but remains equally useful to understand the <b>slot table in depth</b>.
+  <b>Slot table in depth</b>.
 </div>
 
 * https://www.youtube.com/watch?v=6BRlI5zfCCk
@@ -331,10 +332,10 @@ fun Modifier.verticalGradientScrim(color: Color, numStops: Int = 16): Modifier =
   Composition / recomposition intentionally <b>coupled to KotlinX Coroutines</b>.
 </div>
 
-* Uses it for <span class="blueText">structured concurrency</span> 👉 Parallel recomposition, offload recomposition to different threads...
-* Uses it for <span class="blueText">automatic Cancellation</span> in effect handlers ⏩
-* <span class="blueText">Can't replace</span> it unless you write your complete runtime 👉 Including everything we've seen so far 😅
-* But you can <span class="blueText">provide your own Applier<N> and nodes</span> 👉 We'll show that ahead on this talk.
+* <span class="blueText">Structured concurrency</span> 👉 Parallel recomposition, offload recomposition to different threads...
+* <span class="blueText">Automatic Cancellation</span> in effect handlers ⏩
+* <span class="blueText">Can't replace</span> it unless you write your complete runtime 😅
+* But you can <span class="blueText">provide your own Applier<N> impl and node types</span>!
 
 ---
 
@@ -459,7 +460,6 @@ class UiApplier(private val root: Any) : Applier<Any> {
 
 * It <span class="blueText">keeps a reference to its children</span>.
 * It keeps track of all children <span class="blueText">measuring / placing</span> and measures itself.
-* Requests remeasuring itself and its parent when attached / removed.
 
 ---
 
@@ -506,38 +506,12 @@ fun MyOwnColumn(
 </div>
 
 * Building a <b>web app</b> with Compose
-* <span class="blueText">Server side composition</span> 👉 apply changes (Applier) as commands sent to client via websocket.
-* <span class="blueText">Client side rendering / user interaction events</span>.
-* In-memory DOM representation via `Applier<HtmlNode>`.
-* <span class="blueText">HtmlNode</span> 👉 representation of a UI element.
+* <span class="blueText">Server side composition</span> and client communication via websocket.
+* Custom `Applier<HtmlNode>`.
 
 https://medium.com/@shikasd/composing-in-the-wild-145761ad62c3
 
 <img style="width:600px" src="assets/Compose Web Server.png"/>
-
----
-
-## Compose Material & Foundation 🛠
-
-<div class="card">
-  Not covered on this talk.
-</div>
-
-* Material 👉 @Composables following the <span class="blueText">Material guidelines</span>.
-* Foundation 👉 <span class="blueText">generic @Composables like Box</span>.
-* Foundation also includes pieces reused by both like utilities for <span class="blueText">text, shapes, corners, etc</span>.
-
----
-
-## Compose Animation 🎬 and AndroidX UI
-
-<div class="card">
-  Not covered on this talk.
-</div>
-
-* <span class="blueText">Compose Animation</span> 👉 All animation APIs for compose.
-* <span class="blueText">AndroidX UI</span> 👉 Tooling around compose: Compose testing utilities, support for the tooling around Compose like the layout inspector or the preview.
-
 
 ---
 
@@ -786,7 +760,7 @@ fun SearchScreen(eventId: String) {
 
 ---
 
-## Surviving config changes ✊
+## Surviving config changes?
 
 <div class="card">
   By the <b>enclosing LifecycleOwner</b> and AAC <b>ViewModel</b>.
