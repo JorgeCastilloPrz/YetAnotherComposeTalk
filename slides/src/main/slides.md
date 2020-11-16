@@ -460,6 +460,7 @@ https://medium.com/@shikasd/composing-in-the-wild-145761ad62c3
 
 * <span class="blueText">All apps contain effects</span>.
 * Don't run effects directly from composables. 🙅
+* Composables are restartable (<span class="yellowText">might run multiple times</span>).
 * Wrap them in effect handlers to make the effect lifecycle aware 👉 Make sure effects run <span class="blueText">on the correct lifecycle step</span> + <span class="blueText">correct environment</span> + <span class="blueText">are bound by the Composable lifecycle</span>.
 
 ---
@@ -544,7 +545,7 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
         }
     }
 
-    DisposableEffect(true) { // Will never relaunch (constant key)
+    DisposableEffect(Unit) { // Will never relaunch (constant key)
         dispatcher.addCallback(backCallback)
         onDispose {
             backCallback.remove() // avoid leaks!
@@ -562,7 +563,7 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
   <b>SideEffect</b>
 </div>
 
-* More like a fire and forget.
+* More like a <span class="blueText">fire on this composition or forget</span>.
 * Recorded to run after changes applied and lifecycle events.
 * Discarded if composition fails (not stored in the slot table).
 * For effects that <span class="blueText">do not require disposing</span>.
