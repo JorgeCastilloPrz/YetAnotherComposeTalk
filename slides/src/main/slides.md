@@ -386,11 +386,11 @@ class UiApplier(private val root: Any) : Applier<Any> {
 ## Compose UI 📲
 
 <div class="card">
-  <b>LayoutNode</b> is an in memory representation of our UI nodes
+  <b>LayoutNode</b> is an in memory representation of a UI node
 </div>
 
 * <span class="blueText">Attached to an Owner</span> when materialized.
-* Owner 👉 <span class="blueText">Connection with the View system</span> 👉 layout, input, drawing, accessibility...
+* Owner 👉 <span class="blueText">Connection with the View system</span>.
 * It <span class="blueText">keeps a reference to its parent</span> or the Owner when it's root.
 
 <img style="margin-top:40px;" src="assets/LayoutNode hierarchy.png"/>
@@ -402,7 +402,7 @@ class UiApplier(private val root: Any) : Applier<Any> {
 ## Compose UI 📲
 
 <div class="card">
- <b>Other use cases?</b> 🤷 We could imagine a few.
+ <b>Other use cases for custom Appliers / nodes?</b> 🤷
 </div>
 
 * <span class="blueText">UI testing libs</span> that interpret changes by creating abstractions of the UI elements to assert over.
@@ -540,9 +540,7 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
   <b>SideEffect</b>
 </div>
 
-* More like a <span class="blueText">fire on this composition or forget</span>.
-* Recorded to run after changes applied and lifecycle events.
-* Discarded if composition fails (not stored in the slot table).
+* More like a <span class="blueText">fire on this composition or forget</span>. (Discarded if composition fails).
 * For effects that <span class="blueText">do not require disposing</span>.
 * Runs <span class="blueText">after every composition / recomposition</span>.
 * Useful to publish updates to <span class="blueText">external states</span>.
@@ -569,11 +567,11 @@ fun MyScreen(drawerTouchHandler: TouchHandler) {
   <b>invalidate</b>
 </div>
 
-* <span class="blueText">An effect</span> itself, not an effect handler.
 * Invalidates composition locally 👉 <span class="blueText">enforces recomposition</span>.
 * ⚠️ <span class="yellowText">Use sparingly!</span> ⚠️ observe state instead 👉 smart recomposition when changes.
 * For animations there are APIs to await for next frame.
 * Requires handling thread safety manually.
+* <span class="blueText">When source of truth is not a compose `State`</span>.
 
 ```kotlin
 @Composable
@@ -590,11 +588,10 @@ fun MyComposable(presenter: Presenter) {
 ## Effect handlers 🌀
 
 <div class="card">
-  <b>rememberCoroutineScope</b>
+  <b>rememberCoroutineScope</b> - suspended effects.
 </div>
 
-* <span class="blueText">To run suspended effects</span>.
-* Creates `CoroutineScope` bound to this point in composition.
+* Creates `CoroutineScope` bound to this composition.
 * Scope <span class="blueText">cancelled when leaving composition</span>.
 * Same scope returned across recompositions.
 * Use this scope to <span class="blueText">launch jobs in response to user interactions</span>.
@@ -629,13 +626,12 @@ fun SearchScreen() {
 ## Effect handlers 🌀
 
 <div class="card">
-  <b>LaunchedEffect</b>
+  <b>LaunchedEffect</b> - suspended effects.
 </div>
 
-* <span class="blueText">To run suspended effects</span>.
-* Runs the effect on the applier dispatcher (Usually `AndroidUiDispatcher.Main`) when entering the composition.
-* <span class="blueText">Cancels</span> the effect when leaving the composition.
-* <span class="blueText">Cancels and relaunches</span> the effect when the subject changes.
+* Runs the effect on the applier dispatcher (Usually `AndroidUiDispatcher.Main`) when entering.
+* <span class="blueText">Cancels</span> the effect when leaving.
+* <span class="blueText">Cancels and relaunches</span> the effect when subject changes.
 * Useful to span a job across recompositions.
 
 ```kotlin
