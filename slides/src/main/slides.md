@@ -701,8 +701,8 @@ fun SearchScreen() {
 @Composable
 fun SpeakerList(eventId: String) {
   var speakers by remember { mutableStateOf<List<Speaker>>(emptyList()) }
-  LaunchedTask(eventId) { // cancelled / relaunched when eventId varies
-    speakers = viewModel.loadSpeakers() // suspended effect
+  LaunchedEffect(eventId) { // cancelled / relaunched when eventId varies
+    speakers = viewModel.loadSpeakers(eventId) // suspended effect
   }
 
   ItemsVerticalList(speakers)
@@ -725,7 +725,7 @@ fun SpeakerList(eventId: String) {
 @Composable
 fun SearchScreen(eventId: String) {
   val uiState = produceState(initialValue = emptyList<Speaker>(), eventId) {
-    viewModel.loadSpeakers() // suspended effect
+    viewModel.loadSpeakers(eventId) // suspended effect
   }
 
   ItemsVerticalList(uiState.value)
@@ -738,44 +738,8 @@ fun SearchScreen(eventId: String) {
 ## Surviving config changes?
 
 <div class="card">
-  By the <b>enclosing LifecycleOwner</b> and AAC <b>ViewModel</b>.
+  <b>No time!</b> Will write a post or something 😅
 </div>
-
-* Composable screens enclosed in Fragments 👉 `ViewModel` scoped to the `Fragment` lifecycle.
-* Composable screens enclosed in Activities 👉 `ViewModel` scoped to the `Activity` lifecycle.
-* `viewModel` delegate 👉 ViewModel <span class="blueText">scoped to the enclosing `LifecycleOwner`.
-* <span class="blueText">No difference with the "old" way</span>.
-
----
-
-## Surviving config changes ✊
-
-<div class="card">
-  When <b>your screens are @Composables</b>
-</div>
-
-* Each screen can use `rememberCoroutineScope`, `LaunchedEffect` or similar to <span class="blueText">cancel jobs on leaving composition</span>.
-* Store data on a higher level cache at an upper scope (activity or application).
-* Restore data from there on composition / recomposition.
-
-```kotlin
-@Composable
-fun MainActivityContent() {
-  val (selectedTab, setSelectedTab) = remember { mutableStateOf(CourseTabs.CHARACTERS) }
-
-  Scaffold(
-    bottomBar = { TabBar(selectedTab, setSelectedTab) }
-  ) { innerPadding ->
-    val modifier = Modifier.padding(innerPadding)
-    when (selectedTab) {
-      CourseTabs.CHARACTERS -> CharactersScreen()
-      CourseTabs.EPISODES -> EpisodesScreen()
-      CourseTabs.SEARCH -> LocationsScreen()
-    }
-  }
-}
-```
-<!-- .element: class="arrow" data-highlight-only="true" -->
 
 ---
 
