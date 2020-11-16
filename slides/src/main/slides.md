@@ -17,14 +17,13 @@
 ## Compose compiler ⚙
 
 <div class="card">
-  Generates metadata to satisfy the <b>Runtime</b> needs.
+  <b>Plugin</b> to generate metadata to satisfy the <b>Runtime</b> needs.
 </div>
 
-* Kotlin compiler plugin Targeting Kotlin <span class="blueText">1.4 IR</span>.
-* Scans for all <span class="blueText">`@Composable`</span> functions.
-* Generates convenient IR to include relevant info when called.
+* Scans for all <span class="blueText">`@Composable`</span> functions, <span class="blueText">generates convenient IR</span> to include relevant info when called (1.4 IR).
+* Makes them <span class="blueText">restartable / cacheable</span>.
 * Unlocks runtime optimizations.
-* <span class="blueText">*(Smart recomposition, offload compositions to different threads, avoid redundant boilerplate for "Stable" apis...)*</span>
+* <span class="blueText">*(Smart recomposition, offload compositions to different threads, avoid unnecessary boilerplate...)*</span>
 
 ---
 
@@ -63,28 +62,13 @@ fun MyComposable($composer: Composer, $key: Int) {
 ## Compiler checks ⚙
 
 <div class="card">
-    👇 <b>Imposing a calling context</b> 👇
+    👇 <b>Impose a calling context</b> 👇
 </div>
 
 * Requirement imposed by the Compiler <span class="blueText">frontend</span> phase <span class="yellowText">(static checks)</span> 👉 fast feedback loop.
 * Can <span class="blueText">only be called from other `@Composable` functions</span>.
-* Standard functions can't call composable ones 🙅
-* Ensure a pure <span class="blueText">@Composable</span> function call stack.
-* The compiler can make the <span class="blueText">Composer</span> available at all levels.
-
----
-
-## Compose compiler ⚙
-
-<div class="card">
-    With this, our @Composable codebase would be <b>ready for the runtime</b>.
-</div>
-
-* All the required metadata has been added.
-
-<br/>
-<br/>
-<h1>👍</h1>
+* Ensure a pure <span class="blueText">@Composable</span> function call stack 👇
+* Compiler can make the <span class="blueText">Composer available at all levels</span>.
 
 ---
 
@@ -125,28 +109,25 @@ fun MyComposable($composer: Composer, $key: Int) {
 </div>
 
 * Slot table 👉 generic node structure.
-* While reading our composable function tree 👉 Composer <span class="blueText">adds, removes, replaces, or moves</span> nodes based on our logics <span class="yellowText">(think of conditional logics)</span>.
-* Those operations are represented by <span class="blueText">emitting</span> generic changes over the table.
-
-```kotlin
-internal typealias Change<N> // N is the chosen node type
-```
-<!-- .element: class="arrow" data-highlight-only="true" -->
+* Reading composable tree 👉 Composer <span class="blueText">adds, removes, replaces, moves</span> nodes based on logics <span class="yellowText">(think of conditional logics)</span>.
+* Those operations represented by <span class="blueText">emitting</span> generic changes of type `Change<N>` over the table.
 
 ---
 
 ## Compose Runtime 🏃
 
+Change 👉 <span class="blueText">in memory lambda</span> that represents an effect.
+
 ```kotlin
 internal typealias Change<N> = (
-    applier: Applier<N>, // interpreter interface we can implement 👉 materializes changes
-    slots: SlotWriter, // writes changes to the table when the time comes
-    lifecycleManager: LifecycleManager // side effects and lifecycle events are also recorded!
+    applier: Applier<N>, // interpreter 👉 materializes changes
+    slots: SlotWriter, // write changes to the table
+    lifecycleManager: LifecycleManager // side effects / lifecycle events also recorded!
 ) -> Unit
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
-* Lifecycle events of a <span class="blueText">@Composable</span> can be entering / leaving the composition, and also `SideEffects` 👇
+* Records a lists of <span class="blueText">@Composable</span> entering events, leaving events, and side effects 👉 dispatch in order.
 
 ```kotlin
 internal interface LifecycleManager {
@@ -203,8 +184,8 @@ Anything driven by a <span class="blueText">@Composable function</span> 👇
 * <span class="blueText">UI nodes</span> (LayoutNodes, DOMElements...).
 * Nodes that store <span class="blueText">State</span>.
 * Remembered data (`remember`).
-* <span class="blueText">Composable function calls</span> are also recorded as nodes.
-* <span class="blueText">Providers and Ambients</span> (they're also composable functions).
+* <span class="blueText">Composable function calls</span>.
+* <span class="blueText">Providers and Ambients</span>.
 * <span class="blueText">Side effects</span> of composition lifecycle (onEnter / onLeave).
 
 <div class="card">
@@ -231,7 +212,7 @@ Anything driven by a <span class="blueText">@Composable function</span> 👇
 
 * Composition first 👉 <span class="blueText">Adds relevant data to the table</span>.
 * Once done 👉 <span class="blueText">Apply all recorded changes</span> 📲
-* Composables visible! 👉 time for <span class="blueText">Lifecycle events</span>.
+* Composables visible! 👉 time for <span class="blueText">Lifecycle events</span>. Enter events first, then leave events. (LIFO)
 * Lifecycle events triggered! 👉 <span class="blueText">time to run recorded SideEffects</span>.
 
 * Recomposition required? 👉 <span class="blueText">back to step one</span> ⏫
@@ -244,25 +225,19 @@ Anything driven by a <span class="blueText">@Composable function</span> 👇
   What about <b>recomposition</b>?
 </div>
 
-* The Composer can <span class="blueText">discard pending compositions</span> when finding errors during the composition, and also smartly <span class="blueText">skip recomposition</span> via the <span class="blueText">RecomposerScope</span>.
+* Composer can <span class="blueText">discard pending compositions</span> when composition fails, and also smartly <span class="blueText">skip recomposition</span> via the <span class="blueText">RecomposerScope</span>.
 
 ```kotlin
 @Composable
 fun Counter($composer: Composer) {
   $composer.start()
-  val count = remember($composer) { mutableStateOf(0) }
-
-  Button($composer, onClick = { count.value += 1 }) {
-    Text($composer, "Current count ${count.value}")
-  }
-  $composer.end()?.updateScope { nextComposer ->
+  // ...our composable logics
+  $composer.end()?.updateScope { nextComposer -> // this block will drive recomposition!
     Counter(nextComposer)
   }
 }
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
-
-* Note the update block added after `composer.end()`.
 
 ---
 
@@ -286,7 +261,6 @@ fun HelloWorld($composer: Composer) {
 ```
 <!-- .element: class="arrow" data-highlight-only="true" -->
 
-* All boilerplate is added <span class="blueText">by the Compiler</span>.
 * `RecomposeScope` works via the <span class="blueText">Composer 👉 Recomposer</span>.
 
 ---
@@ -297,7 +271,7 @@ fun HelloWorld($composer: Composer) {
  <b>Positional Memoization</b> when reading from the slot table.
 </div>
 
-* The Runtime can <span class="blueText">remember the result of a `@Composable` function call</span> and return it without computing it again whenever not required.
+* Runtime can <span class="blueText">remember result of a `@Composable` call</span> and return it without computing it again.
 * <span class="yellowText">Think of the `remember` function</span>.
 
 ```kotlin
@@ -342,28 +316,14 @@ fun Modifier.verticalGradientScrim(color: Color, numStops: Int = 16): Modifier =
 ## Compose UI 📲
 
 <div class="card">
-  Materialize all our recorded changes <b>into ultimate Android UI</b>.
+  Materialize all recorded changes <b>into ultimate Android UI</b>.
 </div>
 
-* This module <span class="blueText">bridges the gap between the Runtime and the chosen Platform</span>.
+* This module <span class="blueText">bridges the gap between the Runtime and the Platform</span>.
 * The chosen <span class="blueText">`Applier<N>`</span> implementation does the job.
 * Provides integration with the device: layout, drawing (skia), user input...
 
 <img src="assets/Runtime concern separation 2.png"/>
-
----
-
-## Compose UI 📲
-
-<div class="card">
- <b>Other use cases?</b> 🤷 We could imagine a few.
-</div>
-
-* <span class="blueText">UI testing libs</span> that interpret changes by creating abstractions of the UI elements to assert over.
-* Support <span class="blueText">other platforms like desktop</span> -> DOMElements for the nodes, DesktopApplier implementation for the bridging.
-* <span class="blueText">Synchronizing an object graph</span> by serializing / sending diffs.
-* <span class="blueText">Control hardware</span> 👉 minimize commands to reflect a change.
-* Etc
 
 ---
 
@@ -502,6 +462,20 @@ fun MyOwnColumn(
 ## Compose UI 📲
 
 <div class="card">
+ <b>Other use cases?</b> 🤷 We could imagine a few.
+</div>
+
+* <span class="blueText">UI testing libs</span> that interpret changes by creating abstractions of the UI elements to assert over.
+* Support <span class="blueText">other platforms like desktop</span> -> DOMElements for the nodes, DesktopApplier implementation for the bridging.
+* <span class="blueText">Synchronizing an object graph</span> by serializing / sending diffs.
+* <span class="blueText">Control hardware</span> 👉 minimize commands to reflect a change.
+* Etc
+
+---
+
+## Compose UI 📲
+
+<div class="card">
  <b>Custom nodes and Applier</b> - Practical use case (Andrei Shikov <b>@shikasd_</b>)👇
 </div>
 
@@ -518,11 +492,11 @@ https://medium.com/@shikasd/composing-in-the-wild-145761ad62c3
 ## Effect handlers 🌀
 
 <div class="card">
-  They belong to the <b>Runtime</b>, but let's cover them separately.
+  They belong to the <b>Runtime</b>, but let's cover them separately 👍
 </div>
 
 * <span class="blueText">All apps contain effects</span>.
-* Don't run effects directly from composables 🙅 🤔 (They'd run on <span class="yellowText">every recomposition</span>) 👉 unexpected behavior.
+* Don't run effects directly from composables. 🙅
 * Wrap them in effect handlers to make the effect lifecycle aware 👉 Make sure effects run <span class="blueText">on the correct lifecycle step</span> + <span class="blueText">correct environment</span> + <span class="blueText">are bound by the Composable lifecycle</span>.
 
 ---
@@ -545,7 +519,7 @@ https://medium.com/@shikasd/composing-in-the-wild-145761ad62c3
   There are <b>two categories of Effect Handlers</b>.
 </div>
 
-* <span class="blueText">Non suspending effects</span> 👉 E.g: Run a side effect to initialize some property when the Composable enters the composition.
+* <span class="blueText">Non suspending effects</span> 👉 E.g: Run a side effect to initialize a callback when the Composable enters the composition, and dipose it when it leaves.
 * <span class="blueText">Suspending effects</span> 👉 E.g: Load data from network to feed some UI state.
 
 ---
@@ -556,10 +530,9 @@ https://medium.com/@shikasd/composing-in-the-wild-145761ad62c3
   <b>DisposableEffect</b> (old onCommit + onDispose)
 </div>
 
-* Side effect of composition <span class="blueText">lifecycle</span> (onEnter / onLeave).
+* Side effect of composition <span class="blueText">lifecycle</span> (observing onEnter / onLeave).
 * Fired <span class="blueText">first time and every time the inputs change</span>.
-* Requires `onDispose` callback at the end 👉 disposed on leaving composition and every time inputs change.
-* E.g: Initialize a callback when entering composition 👇
+* Requires `onDispose` at the end 👉 disposed on leaving composition and every time inputs change.
 
 ```kotlin
 @Composable
@@ -589,7 +562,7 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
 ## Effect handlers 🌀
 
 <div class="card">
-  <b>DisposableEffect(true)</b> (old onActive / onCommit(true))
+  <b>DisposableEffect(Unit)</b> (old onActive / onCommit(Unit))
 </div>
 
 * Same thing, but given constant argument 👉 fired <span class="blueText">only first time</span> and never more.
@@ -626,10 +599,12 @@ fun backPressHandler(onBackPressed: () -> Unit, enabled: Boolean = true) {
   <b>SideEffect</b>
 </div>
 
-* Recorded to run after composition changes applied and lifecycle events triggered.
-* For <span class="blueText">non suspended effects that do not require disposing</span>.
-* <span class="blueText">Runs after every composition / recomposition</span>.
-* Useful to publish updates to <span class="blueText">external states</span> unrelated to the composition.
+* More like a fire and forget.
+* Recorded to run after changes applied and lifecycle events.
+* Discarded if composition fails (not stored in the slot table).
+* For effects that <span class="blueText">do not require disposing</span>.
+* Runs <span class="blueText">after every composition / recomposition</span>.
+* Useful to publish updates to <span class="blueText">external states</span>.
 
 ```kotlin
 @Composable
